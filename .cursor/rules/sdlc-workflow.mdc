@@ -1,0 +1,18 @@
+---
+description: SDLC multi-role workflow (PO → BA → Architect → Tech BA → Dev → QE)
+alwaysApply: false
+globs: docs/sdlc/**/*, **/*.md
+---
+
+# SDLC Workflow
+
+When working on requirements or docs, follow the SDLC phases:
+
+1. **PO** — PRD, user stories → docs/sdlc/po/
+2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/
+3. **Architect** — ADRs, diagrams → docs/sdlc/architecture/
+4. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
+5. **Dev Teams** — Implementation
+6. **QE** — Test plan, test cases → docs/sdlc/qe/
+
+Full workflow: docs/sdlc/SDLC-WORKFLOW.md

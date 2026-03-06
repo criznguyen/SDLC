@@ -1,0 +1,27 @@
+{
+  "name": "sdlc-workflow",
+  "version": "1.0.0",
+  "description": "Scaffold SDLC workflow docs and templates for Cursor, Claude, and dev teams",
+  "type": "module",
+  "bin": {
+    "sdlc-workflow": "./bin/cli.js"
+  },
+  "keywords": [
+    "sdlc",
+    "workflow",
+    "scaffold",
+    "cursor",
+    "claude",
+    "po",
+    "ba",
+    "architecture"
+  ],
+  "author": "",
+  "license": "MIT",
+  "files": [
+    "bin"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}
