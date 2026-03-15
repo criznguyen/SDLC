@@ -164,6 +164,7 @@ async function generateFromInline(cwd) {
 
   const files = [
     ["SDLC-WORKFLOW.md", SDLC_WORKFLOW_MD],
+    ["ORCHESTRATION.md", ORCHESTRATION_MD],
     ["reference.md", REFERENCE_MD],
     ["po/epic-brief.template.md", PO_EPIC_TEMPLATE],
     ["po/README.md", PO_README],
@@ -196,12 +197,14 @@ async function generateFromInline(cwd) {
 }
 
 const CURSOR_RULE_CONTENT = `---
-description: SDLC multi-role workflow (PO → BA → Architect → Tech BA → QE docs → Dev → QE testing)
+description: SDLC multi-role workflow; on idea/request trigger pipeline through deployment (sub-agent per phase)
 alwaysApply: false
 globs: docs/sdlc/**/*, **/*.md
 ---
 
 # SDLC Workflow
+
+**On idea/feature request:** Trigger full pipeline (PO → … → Deploy). One sub-agent per phase; run phases in sequence without stopping. See docs/sdlc/SDLC-WORKFLOW.md and docs/sdlc/agents/.
 
 1. **PO** — PRD, user stories → docs/sdlc/po/
 2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/
@@ -218,12 +221,22 @@ Full workflow: docs/sdlc/SDLC-WORKFLOW.md
 
 const CURSOR_SKILL_MD = `---
 name: sdlc-workflow
-description: Multi-role SDLC workflow from user requirements through PO, Business BA, Architect, Technical BA, Dev teams, and QE. Use when user mentions SDLC, requirements, PO, BA, Architect, technical spec, phased development, or handoff between roles.
+description: Multi-role SDLC workflow from user requirements through PO, Business BA, Architect, Technical BA, Dev teams, and QE. Use when user sends an idea, feature request, or requirement — trigger full pipeline through deployment. Use when user mentions SDLC, requirements, PO, BA, Architect, technical spec, phased development, or handoff between roles.
 ---
 
 # SDLC Workflow (Multi-Role)
 
 Sequential workflow; **each role runs as a sub-agent**. Each phase produces docs/artifacts for the next. After completion → deploy with **Docker Compose** and **K8s** (docs/sdlc/deploy/).
+
+## Trigger and orchestration (mandatory)
+
+**When the user sends an idea, feature request, or new requirement:**
+1. **Do not** handle it with the main agent only. **Trigger the pipeline** and run it **continuously through deployment** (Phase 1 → 2 → … → 7).
+2. **Per phase = one sub-agent (one role).** For each phase, act only as that role, produce that phase's outputs into the correct folder, then **continue immediately to the next phase** without waiting for the user.
+3. **Run in order:** PO → Business BA → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Deploy. Do not stop after one phase unless the user explicitly asks to stop.
+4. If the platform supports **sub-agents**, spawn one sub-agent per phase and pass the previous phase's output as input. If not, the main agent must **simulate** by executing each phase in sequence and writing artifacts to docs/sdlc/... then proceeding.
+
+**Sub-agent specs**: docs/sdlc/agents/
 
 ## Flow Overview
 
@@ -231,8 +244,7 @@ Sequential workflow; **each role runs as a sub-agent**. Each phase produces docs
 User Request → PO → Business BA → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Deploy (Docker Compose + K8s)
 \`\`\`
 
-**Determine current phase** before acting. If unsure, ask: "Which phase are we in?"
-**Sub-agent specs**: docs/sdlc/agents/
+**Determine current phase** before acting. If user sent an idea, assume Phase 0 and start from Phase 1.
 
 ---
 
@@ -353,6 +365,8 @@ After completion → Docker Compose + K8s. See docs/sdlc/deploy/
 
 const AGENTS_MD_CONTENT = `## SDLC Workflow
 
+**Trigger:** When the user sends an **idea**, **feature request**, or **requirement**, run the full pipeline (Phase 1 → 7) in sequence. One role (sub-agent) per phase; produce outputs then continue to the next. Do not stop after one phase until deployment unless the user asks to stop.
+
 When working on requirements, features, or handoffs, follow these phases:
 
 1. **PO** — PRD, user stories → docs/sdlc/po/
@@ -368,6 +382,8 @@ After the docs phase, the Dev team runs implementation immediately. See docs/sdl
 `;
 
 const CLAUDE_SDLC_CONTENT = `## SDLC Workflow
+
+**Trigger on idea:** When the user sends an idea, feature request, or requirement, run the pipeline continuously: Phase 1 (PO) → 2 → … → 7 (Deploy). One sub-agent/role per phase; do not handle the whole flow as the main agent only. Do not stop after one phase unless the user asks.
 
 1. **PO** — PRD, user stories → docs/sdlc/po/
 2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/
@@ -385,6 +401,12 @@ const SDLC_WORKFLOW_MD = `# SDLC Workflow (Multi-Role)
 
 Use this doc with **Claude** (copy to Custom Instructions / Projects) or **@ mention** in chat.
 For Cursor, see .cursor/rules/sdlc-workflow.mdc
+
+## Trigger and orchestration
+
+- **When the user sends an idea, feature request, or requirement:** Start the pipeline and run it **continuously through deployment** (Phase 1 → 2 → … → 7). Do not handle everything in one main-agent response.
+- **One sub-agent (role) per phase:** Execute each phase as that role only; write artifacts to the right folder; then **continue to the next phase** without waiting. If the tool supports sub-agents, spawn one per phase; otherwise the main agent runs each phase in sequence.
+- **Do not stop** after PO or any single phase unless the user explicitly asks to stop. Run through to Deploy.
 
 ## Flow
 
@@ -448,9 +470,38 @@ User Request → PO → Business BA → Architect → Technical BA → QE (docs)
 See [reference.md](./reference.md) for templates.
 `;
 
+const ORCHESTRATION_MD = `# Pipeline orchestration
+
+## Trigger
+
+When the user sends an **idea**, **feature request**, or **requirement** (e.g. "I want a login page", "We need an API for X"):
+
+1. **Do not** answer with the main agent only (e.g. one reply that does a bit of everything).
+2. **Trigger the full pipeline** and run **Phase 1 → 2 → … → 7 in sequence**.
+3. **One role (sub-agent) per phase:** For each phase, act only as that role, write outputs to the correct \`docs/sdlc/...\` folder, then **continue to the next phase** without asking the user to "run next step".
+4. **Run through to Deploy.** Do not stop after PO, BA, or Dev unless the user explicitly says to stop.
+
+## How to run (by platform)
+
+- **If the tool has sub-agents:** Spawn one sub-agent per phase; pass previous phase output as input; run in order.
+- **If only one agent:** Simulate by executing Phase 1 (PO) → write \`docs/sdlc/po/...\` → then Phase 2 (Business BA) → … → Phase 7 (Deploy). One continuous run or explicit "Phase 1 done, starting Phase 2" steps.
+
+## Checklist per run
+
+- [ ] Phase 1 PO: artifacts in \`docs/sdlc/po/\`
+- [ ] Phase 2 Business BA: \`docs/sdlc/ba/business/\`
+- [ ] Phase 3 Architect: \`docs/sdlc/architecture/\`
+- [ ] Phase 4 Technical BA: \`docs/sdlc/ba/technical/\`
+- [ ] Phase 5a QE docs: \`docs/sdlc/qe/\`
+- [ ] Phase 5b Dev: code + unit tests, \`docs/sdlc/dev/\`
+- [ ] Phase 6 QE testing: automation, sign-off
+- [ ] Phase 7 Deploy: \`docs/sdlc/deploy/\`, Docker Compose + K8s
+`;
+
 const REFERENCE_MD = `# SDLC Workflow — Reference
 
 Templates and examples. Use \`*.template.md\` as starting points.
+Templates are written for all project types: web, mobile, API-only, library/SDK, CLI, data/ML, platform/infra.
 Sub-agents: docs/sdlc/agents/
 Deploy: docs/sdlc/deploy/ (Docker Compose + K8s)
 `;
@@ -473,6 +524,8 @@ Every role in the SDLC runs as a **sub-agent**. Each phase is assigned to a corr
 | Deploy | deploy | QE sign-off | Docker Compose + K8s, docs/sdlc/deploy/ |
 
 Orchestrator: run each sub-agent in order; hand off output → input of the next sub-agent.
+
+**Trigger:** On user idea/request, run the full pipeline (see docs/sdlc/ORCHESTRATION.md). Do not run the whole flow as the main agent only; do not stop after one phase until Deploy unless the user asks.
 `;
 
 const DEPLOY_README = `# Deploy
@@ -490,7 +543,8 @@ After the pipeline completes (QE sign-off), deploy immediately with:
 - \`k8s/ingress.yaml.template\` — Ingress (optional)
 `;
 
-const DOCKER_COMPOSE_TEMPLATE = `# Copy to docker-compose.yml and adjust image, env, ports
+const DOCKER_COMPOSE_TEMPLATE = `# Copy to docker-compose.yml and adjust image, env, ports.
+# Single service (API, CLI, app) or add more services (api, worker, frontend, db) as needed.
 services:
   app:
     image: your-registry/your-app:latest
@@ -500,9 +554,13 @@ services:
     environment:
       - NODE_ENV=production
     restart: unless-stopped
+  # Optional: add worker, frontend, db, etc.
+  # worker:
+  #   image: your-registry/worker:latest
+  #   depends_on: [app]
 `;
 
-const K8S_DEPLOYMENT_TEMPLATE = `# deployment.yaml - adjust name, image, replicas
+const K8S_DEPLOYMENT_TEMPLATE = `# deployment.yaml — adjust name, image, replicas. Duplicate for multi-service (api, worker, etc.).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -560,6 +618,9 @@ spec:
 
 const PO_EPIC_TEMPLATE = `# Epic: [Name]
 
+## Project type
+[Web app | Mobile app | API/backend only | Library/SDK | CLI/tool | Data/ML | Platform/infra | Mixed — pick one or describe]
+
 ## Problem
 [What problem are we solving?]
 
@@ -567,8 +628,11 @@ const PO_EPIC_TEMPLATE = `# Epic: [Name]
 - [Metric 1]
 - [Metric 2]
 
-## User Stories
-1. As [persona], I want [action] so that [benefit].
+## User Stories (or equivalent)
+- **Web/Mobile**: As [persona], I want [action] so that [benefit].
+- **API/Library**: As [consumer/integrator], I need [capability] so that [outcome].
+- **CLI/Internal**: As [operator/developer], I run [command/workflow] to [result].
+1. ...
 2. ...
 
 ## Acceptance Criteria (High-level)
@@ -590,9 +654,11 @@ Use epic-brief.template.md as starting point.
 
 const BA_FR_TEMPLATE = `## FR-001: [Title]
 
+**Type**: [Feature | API/Contract | Data/Report | Compliance | Non-functional — pick one]
+
 **Description**: [What the system must do]
 
-**Trigger**: [When does this apply?]
+**Trigger**: [When does this apply? — e.g. user action, API call, schedule, event]
 
 **Process Flow**:
 1. Step 1
@@ -602,6 +668,9 @@ const BA_FR_TEMPLATE = `## FR-001: [Title]
 **Output**: [Result]
 
 **Constraints**: [Compliance, SLA, etc.]
+
+---
+*Use for any project type: product feature (UI/API), library behaviour, CLI behaviour, data pipeline, or platform capability.*
 `;
 
 const BA_BUSINESS_README = `# Business BA
@@ -610,38 +679,113 @@ Functional requirements, process flows, use cases.
 Use functional-requirement.template.md for FRS items.
 `;
 
-const TECH_API_TEMPLATE = `## POST /api/v1/[resource]
+const TECH_API_TEMPLATE = `# Interface / contract spec
 
+Use the section that matches your project. Delete the rest.
+
+---
+
+## HTTP API (backend, BFF, webhooks)
+### POST /api/v1/[resource]
 **Purpose**: [One-line]
+**Request**: Body (JSON schema), Headers (Auth, Content-Type)
+**Response**: 200 payload, 4xx/5xx error format
+**Contract**: OpenAPI spec
 
-**Request**:
-- Body: JSON schema
-- Headers: Auth, Content-Type
+### GET /api/v1/[resource] (add other methods as needed)
+**Purpose**: ...
+**Query params**: ...
+**Response**: ...
 
-**Response**:
-- 200: Success payload
-- 4xx/5xx: Error format
+---
 
-**Contract**: See OpenAPI spec
+## Library / SDK (public API surface)
+### Module/Class: [Name]
+**Purpose**: [One-line]
+**Input**: [Params, types]
+**Output**: [Return type, behaviour]
+**Contract**: TS types / JSDoc / docstring
+
+---
+
+## CLI (commands, flags)
+### Command: \`[cmd] [sub] [flags]\`
+**Purpose**: [One-line]
+**Args**: [positional]
+**Flags**: [--opt, env vars]
+**Exit codes**: 0 success, non-zero errors
+**Contract**: \`--help\` output / man page
 `;
 
-const TECH_TEAM_TEMPLATE = `| Team    | Scope                    | Dependencies          |
-|---------|--------------------------|------------------------|
-| Backend | API, DB, business logic  | Technical spec        |
-| Frontend| UI, API integration      | API contract          |
-| Mobile  | App UI, API integration  | API contract          |
+const TECH_TEAM_TEMPLATE = `# Team breakdown
+
+Use only the rows that apply to your project. Remove or leave blank unused teams.
+
+## By project type
+
+### Web / full‑stack (UI + API)
+| Team     | Scope                         | Dependencies     |
+|----------|--------------------------------|-------------------|
+| Backend  | API, DB, business logic        | Technical spec    |
+| Frontend | Web UI, API integration        | API contract      |
+
+### Mobile
+| Team     | Scope                         | Dependencies     |
+|----------|--------------------------------|-------------------|
+| Backend  | API, DB, business logic        | Technical spec    |
+| Mobile   | App UI (iOS / Android / cross-platform), API integration | API contract |
+
+### API / backend only (no UI)
+| Team     | Scope                         | Dependencies     |
+|----------|--------------------------------|-------------------|
+| Backend  | API, DB, business logic, workers | Technical spec |
+
+### Library / SDK
+| Team     | Scope                         | Dependencies     |
+|----------|--------------------------------|-------------------|
+| Core     | Library/SDK implementation, public API | Technical spec |
+| Bindings | Language bindings, wrappers (optional) | Core API spec |
+
+### CLI / tooling
+| Team     | Scope                         | Dependencies     |
+|----------|--------------------------------|-------------------|
+| CLI      | CLI app, commands, config     | Technical spec   |
+
+### Data / ML / analytics
+| Team     | Scope                         | Dependencies     |
+|----------|--------------------------------|-------------------|
+| Backend  | APIs, pipelines, storage      | Technical spec   |
+| Data/ML  | Models, ETL, analytics, reporting | Data spec, API contract |
+
+### DevOps / platform / infra
+| Team     | Scope                         | Dependencies     |
+|----------|--------------------------------|-------------------|
+| Platform | Infra, CI/CD, observability    | Technical spec   |
+| Backend  | APIs, services (if any)       | Technical spec   |
+
+### Mixed (pick and combine)
+| Team     | Scope                         | Dependencies     |
+|----------|--------------------------------|-------------------|
+| Backend  | API, DB, business logic       | Technical spec    |
+| Frontend | Web UI, API integration       | API contract      |
+| Mobile   | App UI, API integration       | API contract      |
+| Data/ML  | Models, ETL, analytics        | Data spec, API    |
+| Platform | Infra, CI/CD, deploy         | Technical spec    |
 `;
 
 const BA_TECH_README = `# Technical BA
 
-API specs, DB schema, team breakdown.
-Use templates as starting points.
+API/interface specs, DB schema, team breakdown.
+Templates support: HTTP API, library/SDK, CLI, and all project types (see api-spec and team-breakdown).
 `;
 
 const ARCH_ADR_TEMPLATE = `# ADR-001: [Decision Title]
 
 ## Status
-Accepted
+[Proposed | Accepted | Deprecated | Superseded by ADR-xxx]
+
+## Scope
+[backend | frontend | mobile | library | CLI | data/ML | platform/infra | cross-cutting — one or more]
 
 ## Context
 [Why we need this decision]
@@ -662,6 +806,8 @@ Use adr.template.md for new ADRs.
 
 const QE_TC_TEMPLATE = `## TC-001: [Scenario]
 
+**Type**: [API | UI/E2E | Unit | Contract | CLI | Data/Regression — pick one]
+
 **Precondition**: [State before test]
 
 **Steps**:
@@ -672,6 +818,9 @@ const QE_TC_TEMPLATE = `## TC-001: [Scenario]
 **Expected**: [Expected result]
 
 **Links to**: AC-001, Story #42
+
+---
+*API: send request, assert status/body. UI: interact, assert DOM/visibility. CLI: run command, assert stdout/exit code. Contract: consumer/provider expectations.*
 `;
 
 const QE_README = `# QE (Quality Engineering)
