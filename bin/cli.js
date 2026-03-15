@@ -153,6 +153,12 @@ async function generateFromInline(cwd) {
     join(base, "qe", "senior-qe"),
     join(base, "dev", "tech-lead"),
     join(base, "dev", "senior-developer"),
+    join(base, "dev", "frontend"),
+    join(base, "dev", "backend"),
+    join(base, "dev", "mobile"),
+    join(base, "dev", "embedded"),
+    join(base, "dev", "data-ml"),
+    join(base, "dev", "platform"),
     join(base, "agents"),
     join(base, "deploy"),
     join(base, "deploy", "k8s"),
@@ -181,6 +187,13 @@ async function generateFromInline(cwd) {
     ["qe/senior-qe/README.md", QE_SENIOR_README],
     ["dev/tech-lead/README.md", DEV_TECH_LEAD_README],
     ["dev/senior-developer/README.md", DEV_SENIOR_README],
+    ["dev/implementation-roles.template.md", DEV_IMPLEMENTATION_ROLES_TEMPLATE],
+    ["dev/frontend/README.md", DEV_FRONTEND_README],
+    ["dev/backend/README.md", DEV_BACKEND_README],
+    ["dev/mobile/README.md", DEV_MOBILE_README],
+    ["dev/embedded/README.md", DEV_EMBEDDED_README],
+    ["dev/data-ml/README.md", DEV_DATA_ML_README],
+    ["dev/platform/README.md", DEV_PLATFORM_README],
     ["agents/README.md", AGENTS_README],
     ["deploy/README.md", DEPLOY_README],
     ["deploy/docker-compose.yml.template", DOCKER_COMPOSE_TEMPLATE],
@@ -211,7 +224,7 @@ globs: docs/sdlc/**/*, **/*.md
 3. **Architect** — ADRs, diagrams → docs/sdlc/architecture/
 4. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
 5. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/
-6. **Dev** — After docs phase → **run implementation immediately**. Tech Lead (review, merge) + Senior Dev (implement, ≥90% unit test) → docs/sdlc/dev/{role}/
+6. **Dev** — After docs phase → **run implementation immediately**. Tech Lead + implementation roles by project (FE, Backend, Mobile, Embedded, Data/ML, Platform) → docs/sdlc/dev/{role}/
 7. **QE (testing)** — QE Lead (test framework, review) + Senior QE (10+ yrs, automation) → docs/sdlc/qe/{role}/
 8. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
 
@@ -287,9 +300,15 @@ User Request → PO → Business BA → Architect → Technical BA → QE (docs)
 
 **Trigger**: After docs are done (Technical BA + QE docs). **Dev runs implementation immediately.**
 
-**Roles**:
-- **Tech Lead (15+ yrs)**: Decide tech stack, libraries; review & merge code. Docs: \`docs/sdlc/dev/tech-lead/\`
-- **Senior Developer (10+ yrs)**: Implement features per spec. Docs: \`docs/sdlc/dev/senior-developer/\`
+**Roles** (vary by project — use only what applies; see \`docs/sdlc/dev/implementation-roles.template.md\`). All implementation roles are **Senior (10+ yrs)**:
+- **Tech Lead (15+ yrs)**: Tech stack, review & merge. Docs: \`docs/sdlc/dev/tech-lead/\`
+- **Senior Developer (10+ yrs)**: Implement per spec (generic). Docs: \`docs/sdlc/dev/senior-developer/\`
+- **Senior Frontend (10+ yrs)**: Web UI. Docs: \`docs/sdlc/dev/frontend/\`
+- **Senior Backend (10+ yrs)**: API, services. Docs: \`docs/sdlc/dev/backend/\`
+- **Senior Mobile (10+ yrs)**: iOS/Android/cross-platform. Docs: \`docs/sdlc/dev/mobile/\`
+- **Senior Embedded (10+ yrs)**: Firmware, IoT. Docs: \`docs/sdlc/dev/embedded/\`
+- **Senior Data/ML (10+ yrs)**: ETL, models. Docs: \`docs/sdlc/dev/data-ml/\`
+- **Senior Platform (10+ yrs)**: Infra, CI/CD. Docs: \`docs/sdlc/dev/platform/\`
 
 **Requirements**: Unit Test coverage **≥ 90%**.
 
@@ -353,8 +372,9 @@ TC-001: [Scenario] — Precondition, Steps, Expected, Links to AC
 - Senior QE (10+ yrs): write automation tests → docs/sdlc/qe/senior-qe/
 
 ## Dev Team
-- Tech Lead (15+ yrs): tech stack, libraries, review & merge → docs/sdlc/dev/tech-lead/
+- Tech Lead (15+ yrs): tech stack, review & merge → docs/sdlc/dev/tech-lead/
 - Senior Dev (10+ yrs): implement, Unit Test ≥90% → docs/sdlc/dev/senior-developer/
+- By project (all Senior 10+ yrs): Senior Frontend, Backend, Mobile, Embedded, Data/ML, Platform → docs/sdlc/dev/{role}/
 
 ## Sub-agents
 Each role = sub-agent. See docs/sdlc/agents/
@@ -454,8 +474,8 @@ User Request → PO → Business BA → Architect → Technical BA → QE (docs)
 - **After docs phase → Dev team runs implementation immediately** (no extra gate)
 
 ### Phase 5b: Dev Teams
-- **Tech Lead (15+ yrs)**: Tech stack, libraries; review & merge. Output: \`docs/sdlc/dev/tech-lead/\`
-- **Senior Developer (10+ yrs)**: Implement features. Output: \`docs/sdlc/dev/senior-developer/\`
+- **Tech Lead (15+ yrs)**: Tech stack, review & merge. Output: \`docs/sdlc/dev/tech-lead/\`
+- **Implementation roles** (all Senior 10+ yrs; use only what applies): Senior Dev, Senior Frontend, Senior Backend, Senior Mobile, Senior Embedded, Senior Data/ML, Senior Platform → \`docs/sdlc/dev/{role}/\`. See \`implementation-roles.template.md\`.
 - **Requirement**: Unit Test coverage **≥ 90%**
 - **Then**: QE starts testing phase
 
@@ -519,6 +539,12 @@ Every role in the SDLC runs as a **sub-agent**. Each phase is assigned to a corr
 | QE (docs) | qe-docs | docs/sdlc/ba/technical/ | docs/sdlc/qe/ (test plan) |
 | Tech Lead | tech-lead | Technical spec | Review, merge, docs/sdlc/dev/tech-lead/ |
 | Senior Dev | senior-dev | Spec + test plan | After docs → run implementation immediately. Code, unit tests (≥90%) |
+| Senior Frontend | frontend | UI spec, API contract | Web UI, docs/sdlc/dev/frontend/ |
+| Senior Backend | backend | API spec, DB schema | API, services, docs/sdlc/dev/backend/ |
+| Senior Mobile | mobile | API contract, design | App (iOS/Android), docs/sdlc/dev/mobile/ |
+| Senior Embedded | embedded | HW/spec, interfaces | Firmware, IoT, docs/sdlc/dev/embedded/ |
+| Senior Data/ML | data-ml | Data spec, models | ETL, models, docs/sdlc/dev/data-ml/ |
+| Senior Platform | platform | Infra spec | CI/CD, observability, docs/sdlc/dev/platform/ |
 | QE Lead | qe-lead | Test plan | Test framework, review, docs/sdlc/qe/qe-lead/ |
 | Senior QE | senior-qe | Test plan + framework | Automation tests, docs/sdlc/qe/senior-qe/ |
 | Deploy | deploy | QE sign-off | Docker Compose + K8s, docs/sdlc/deploy/ |
@@ -872,6 +898,95 @@ const DEV_SENIOR_README = `# Senior Developer (10+ years exp)
 - Follow Tech Lead's tech decisions
 
 **Docs**: Implementation notes, API usage.
+`;
+
+const DEV_IMPLEMENTATION_ROLES_TEMPLATE = `# Implementation roles by project type
+
+Use only the roles that apply. Remove or ignore the rest. Tech Lead is cross-cutting; add discipline roles as needed.
+
+## By project type
+
+| Project type        | Roles to use (all Senior 10+ except Tech Lead 15+) |
+|---------------------|----------------------------------------------------|
+| Web / full-stack    | Tech Lead, Senior Frontend, Senior Backend         |
+| Mobile              | Tech Lead, Senior Mobile, Senior Backend           |
+| API / backend only  | Tech Lead, Senior Backend                          |
+| Library / SDK       | Tech Lead, Senior Dev (or Senior Backend)           |
+| CLI / tooling       | Tech Lead, Senior Dev (or Senior Backend)           |
+| Data / ML           | Tech Lead, Senior Backend, Senior Data/ML          |
+| Embedded / IoT      | Tech Lead, Senior Embedded (+ Senior Backend if needed) |
+| Platform / infra    | Tech Lead, Senior Platform (+ Senior Backend if needed) |
+| Mixed               | Tech Lead + any of: Senior Frontend, Backend, Mobile, Embedded, Data/ML, Platform |
+
+## Role folders (all implementation roles are Senior 10+ yrs)
+
+- \`tech-lead/\` — Tech Lead (15+ yrs): tech stack, review & merge (all projects)
+- \`senior-developer/\` — Senior Developer: generic implementation
+- \`frontend/\` — Senior Frontend: Web UI
+- \`backend/\` — Senior Backend: API, services, DB
+- \`mobile/\` — Senior Mobile: iOS, Android, cross-platform
+- \`embedded/\` — Senior Embedded: firmware, IoT
+- \`data-ml/\` — Senior Data/ML: ETL, models, analytics
+- \`platform/\` — Senior Platform: CI/CD, infra, observability
+`;
+
+const DEV_FRONTEND_README = `# Senior Frontend (10+ years exp) — Web UI
+
+**Responsibilities**:
+- Implement web UI per design and API contract
+- Unit Test coverage **≥ 90%**
+- Follow Tech Lead's stack (e.g. React, Vue, Angular)
+
+**Docs**: Component docs, integration notes.
+`;
+
+const DEV_BACKEND_README = `# Senior Backend (10+ years exp) — API, services
+
+**Responsibilities**:
+- Implement API, services, DB layer per Technical BA spec
+- Unit Test coverage **≥ 90%**
+- Follow Tech Lead's stack
+
+**Docs**: API implementation notes, DB changes.
+`;
+
+const DEV_MOBILE_README = `# Senior Mobile (10+ years exp) — iOS / Android / cross-platform
+
+**Responsibilities**:
+- Implement app UI and API integration per spec
+- Unit Test coverage **≥ 90%**
+- Follow Tech Lead's stack (e.g. React Native, Flutter, native)
+
+**Docs**: Screen/module docs, integration notes.
+`;
+
+const DEV_EMBEDDED_README = `# Senior Embedded (10+ years exp) — firmware, IoT
+
+**Responsibilities**:
+- Implement firmware, drivers, hardware interfaces per spec
+- Tests as appropriate for target (unit, HW-in-loop)
+- Follow Tech Lead's stack and safety constraints
+
+**Docs**: Module design, interface specs.
+`;
+
+const DEV_DATA_ML_README = `# Senior Data/ML (10+ years exp)
+
+**Responsibilities**:
+- Implement ETL, models, analytics pipelines per spec
+- Tests and validation for data and model quality
+- Follow Tech Lead's stack (e.g. Python, Spark, ML frameworks)
+
+**Docs**: Pipeline design, model cards.
+`;
+
+const DEV_PLATFORM_README = `# Senior Platform (10+ years exp) — infra, CI/CD
+
+**Responsibilities**:
+- Implement CI/CD, infra as code, observability per spec
+- Follow Tech Lead's stack and security requirements
+
+**Docs**: Runbooks, pipeline and infra docs.
 `;
 
 main();

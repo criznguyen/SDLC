@@ -64,11 +64,16 @@ docs/sdlc/
 │   │   └── README.md
 │   └── senior-qe/            # Senior QE 10+ yrs: write automation tests
 │       └── README.md
-├── dev/                      # Dev team (per role)
-│   ├── tech-lead/            # Tech Lead 15+ yrs: tech stack, review & merge
-│   │   └── README.md
-│   └── senior-developer/     # Senior Dev 10+ yrs: implement, Unit Test ≥90%
-│       └── README.md
+├── dev/                      # Dev team (all Senior 10+ yrs; roles vary by project)
+│   ├── implementation-roles.template.md
+│   ├── tech-lead/            # Tech Lead 15+ yrs
+│   ├── senior-developer/    # Senior Dev 10+ yrs (generic)
+│   ├── frontend/             # Senior Frontend 10+ yrs — Web UI
+│   ├── backend/              # Senior Backend 10+ yrs
+│   ├── mobile/               # Senior Mobile 10+ yrs
+│   ├── embedded/             # Senior Embedded 10+ yrs — firmware, IoT
+│   ├── data-ml/              # Senior Data/ML 10+ yrs
+│   └── platform/             # Senior Platform 10+ yrs — CI/CD, infra
 ├── agents/                   # Sub-agent specs (each role = sub-agent)
 │   └── README.md
 └── deploy/                   # After completion → Docker Compose + K8s
