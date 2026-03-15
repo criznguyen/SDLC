@@ -15,10 +15,22 @@ async function main() {
   const args = process.argv.slice(2);
   const command = args[0] || "init";
 
+  if (command === "version" || command === "--version" || command === "-v") {
+    const pkg = JSON.parse(await readFile(join(PKG_ROOT, "package.json"), "utf8"));
+    console.log(pkg.version);
+    process.exit(0);
+  }
+
   if (command !== "init") {
-    console.log("Usage: npx sdlc-workflow init");
-    console.log("  Scaffolds SDLC docs and templates into current project.");
-    console.log("  Installs for: Cursor, Claude, Antigravity, Codex.");
+    console.log("Usage: npx sdlc-workflow <command>");
+    console.log("");
+    console.log("Commands:");
+    console.log("  init     Scaffold SDLC docs and templates (Cursor, Claude, Antigravity, Codex)");
+    console.log("  version  Print current version");
+    console.log("");
+    console.log("Examples:");
+    console.log("  npx sdlc-workflow init");
+    console.log("  npx sdlc-workflow version");
     process.exit(1);
   }
 
