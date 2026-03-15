@@ -229,15 +229,15 @@ globs: docs/sdlc/**/*, **/*.md
 
 # SDLC Workflow
 
-**On idea/feature request:** Trigger full pipeline (PO → … → Deploy). One sub-agent per phase; run phases in sequence without stopping. See docs/sdlc/SDLC-WORKFLOW.md and docs/sdlc/agents/.
+**On idea/feature request:** Trigger full pipeline (PO → … → Deploy). One role per phase; run phases in sequence. (Single agent = simulate by switching role each phase.) See docs/sdlc/SDLC-WORKFLOW.md and docs/sdlc/agents/.
 
-1. **PO** — PRD, user stories → docs/sdlc/po/
-2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/
+1. **PO** — PRD, user stories → docs/sdlc/po/{epic-slug}/ (one folder per epic)
+2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/{epic-slug}/ (one folder per epic)
 3. **Architect** — ADRs, diagrams → docs/sdlc/architecture/
 4. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
-5. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/
+5. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
 6. **Dev** — After docs phase → **run implementation immediately**. Tech Lead + implementation roles by project (FE, Backend, Mobile, Embedded, Data/ML, Platform) → docs/sdlc/dev/{role}/
-7. **QE (testing)** — QE Lead (test framework, review) + Senior QE (10+ yrs, automation) → docs/sdlc/qe/{role}/
+7. **QE (testing)** — QE Lead (15+ yrs automation: strategy, framework, review) + Senior QE (10+ yrs, automation) → docs/sdlc/qe/{epic-slug}/ (same folder per epic)
 8. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
 
 **Each role runs as a sub-agent.** See docs/sdlc/agents/
@@ -256,10 +256,11 @@ Sequential workflow; **each role runs as a sub-agent**. Each phase produces docs
 ## Trigger and orchestration (mandatory)
 
 **When the user sends an idea, feature request, or new requirement:**
-1. **Do not** handle it with the main agent only. **Trigger the pipeline** and run it **continuously through deployment** (Phase 1 → 2 → … → 7).
-2. **Per phase = one sub-agent (one role).** For each phase, act only as that role, produce that phase's outputs into the correct folder, then **continue immediately to the next phase** without waiting for the user.
+1. **Trigger the pipeline** and run it **continuously through deployment** (Phase 1 → 2 → … → 7).
+2. **One role per phase.** For each phase, act **only** as that role (e.g. only PO in phase 1, only Business BA in phase 2). Produce that phase's outputs into the correct folder, then **continue to the next phase** without waiting for the user.
 3. **Run in order:** PO → Business BA → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Deploy. Do not stop after one phase unless the user explicitly asks to stop.
-4. If the platform supports **sub-agents**, spawn one sub-agent per phase and pass the previous phase's output as input. If not, the main agent must **simulate** by executing each phase in sequence and writing artifacts to docs/sdlc/... then proceeding.
+
+**Note:** In Cursor and similar tools there is a single agent per conversation. "Sub-agent" means **one role per phase** — the same agent must adopt exactly one role per phase and run phases in sequence (do not mix roles in one step). If the platform later supports spawning separate agents per phase, use that; otherwise this single agent simulates the pipeline by switching role each phase.
 
 **Sub-agent specs**: docs/sdlc/agents/
 
@@ -282,13 +283,13 @@ User Request → PO → Business BA → Architect → Technical BA → QE (docs)
 
 **Role**: Prioritize, clarify business value, create product docs.
 **Deliverables**: Epic/Feature brief, user stories, acceptance criteria, priority, dependencies.
-**Output**: \`docs/sdlc/po/\` — **Handoff to Business BA.**
+**Output**: \`docs/sdlc/po/{epic-slug}/\` — **one folder per epic** (e.g. \`po/job-scheduler-event-bus/epic-brief.md\`). Do not put all epics in one file. **Handoff to Business BA.**
 
 ## Phase 2: Business BA (Business Analyst)
 
 **Role**: Break down from business perspective.
 **Deliverables**: Business process flows, functional requirements, use cases, glossary.
-**Output**: \`docs/sdlc/ba/business/\` — **Handoff to Architect.**
+**Output**: \`docs/sdlc/ba/business/{epic-slug}/\` — **one folder per epic** (same slug as PO; e.g. \`ba/business/job-scheduler-event-bus/functional-requirements.md\`). Do not merge all epics into one file. **Handoff to Architect.**
 
 ## Phase 3: Architect
 
@@ -306,7 +307,7 @@ User Request → PO → Business BA → Architect → Technical BA → QE (docs)
 
 **Role**: Create test plan, test cases before Dev implements.
 **Deliverables**: Test plan, test cases.
-**Output**: \`docs/sdlc/qe/\` — After docs phase → **Dev team runs implementation immediately** (no extra gate).
+**Output**: \`docs/sdlc/qe/{epic-slug}/\` — **one folder per epic** (same slug as PO/BA). Test plan, test cases inside. Do not put all epics in one file. After docs phase → **Dev team runs implementation immediately** (no extra gate).
 
 ## Phase 5b: Dev Teams
 
@@ -332,8 +333,8 @@ User Request → PO → Business BA → Architect → Technical BA → QE (docs)
 **Role**: Write and run **automation tests**, sign-off.
 
 **Roles**:
-- **QE Lead**: Decide test framework; review test code. Docs: \`docs/sdlc/qe/qe-lead/\`
-- **Senior QE (10+ yrs)**: Write automation tests. Docs: \`docs/sdlc/qe/senior-qe/\`
+- **QE Lead (15+ yrs automation)**: Test strategy, framework choice, automation architecture, review test code. Output per epic: \`docs/sdlc/qe/{epic-slug}/\`
+- **Senior QE (10+ yrs)**: Write automation tests per QE Lead's strategy. Output per epic: \`docs/sdlc/qe/{epic-slug}/\` (e.g. automation/ or test files there)
 
 **Output**: Automation tests, test report. **Handoff to Deploy.**
 
@@ -354,7 +355,7 @@ User Request → PO → Business BA → Architect → Technical BA → QE (docs)
 | 4 | Technical BA | API specs, tech breakdown |
 | 5a | QE (docs) | Test plan, test cases |
 | 5b | Dev | Code, unit tests (≥90%) |
-| 6 | QE (testing) | QE Lead + Senior QE, automation, sign-off |
+| 6 | QE (testing) | QE Lead (15+ yrs automation) + Senior QE (10+ yrs), automation, sign-off |
 | 7 | Deploy | Docker Compose + K8s |
 
 **Sub-agents**: Each role = one sub-agent (PO, Business BA, Architect, Technical BA, QE Lead, Senior QE, Tech Lead, Senior Dev). See docs/sdlc/agents/
@@ -362,6 +363,12 @@ See reference.md for templates.
 `;
 
 const CURSOR_REFERENCE_MD = `# SDLC Workflow — Reference
+
+## Folder structure: one per epic/feature (PO and Business BA)
+
+- **PO**: \`docs/sdlc/po/{epic-slug}/\` — one folder per epic (e.g. \`job-scheduler-event-bus\`). Files: epic-brief.md, user-stories.md. Do not put all epics in one file.
+- **Business BA**: \`docs/sdlc/ba/business/{epic-slug}/\` — same slug as PO. Files: functional-requirements.md, process-flows.md. Do not merge all epics into one file.
+- **QE**: \`docs/sdlc/qe/{epic-slug}/\` — same slug as PO/BA. Files: test-plan.md, test-cases.md, automation artifacts. Do not put all epics in one file.
 
 ## PO: Epic Brief Template
 # Epic: [Name]
@@ -379,9 +386,9 @@ POST /api/v1/[resource] — Purpose, Request, Response, Contract
 ## QE: Test Case
 TC-001: [Scenario] — Precondition, Steps, Expected, Links to AC
 
-## QE Team
-- QE Lead: test framework decision, review test code → docs/sdlc/qe/qe-lead/
-- Senior QE (10+ yrs): write automation tests → docs/sdlc/qe/senior-qe/
+## QE Team (one folder per epic: qe/{epic-slug}/)
+- QE Lead (15+ yrs automation): test strategy, framework, automation architecture, review → docs/sdlc/qe/{epic-slug}/
+- Senior QE (10+ yrs): write automation tests → docs/sdlc/qe/{epic-slug}/
 
 ## Dev Team
 - Tech Lead (15+ yrs): tech stack, review & merge → docs/sdlc/dev/tech-lead/
@@ -401,13 +408,13 @@ const AGENTS_MD_CONTENT = `## SDLC Workflow
 
 When working on requirements, features, or handoffs, follow these phases:
 
-1. **PO** — PRD, user stories → docs/sdlc/po/
-2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/
+1. **PO** — PRD, user stories → docs/sdlc/po/{epic-slug}/ (one folder per epic)
+2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/{epic-slug}/ (one folder per epic)
 3. **Architect** — ADRs, diagrams → docs/sdlc/architecture/
 4. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
-5. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/
+5. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
 6. **Dev** — After docs phase → **run implementation immediately**. Tech Lead + Senior Dev → docs/sdlc/dev/{role}/
-7. **QE (testing)** — QE Lead + Senior QE (automation)
+7. **QE (testing)** — QE Lead (15+ yrs automation) + Senior QE (10+ yrs) → docs/sdlc/qe/{epic-slug}/ (same folder per epic)
 8. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
 
 After the docs phase, the Dev team runs implementation immediately. See docs/sdlc/agents/
@@ -415,15 +422,15 @@ After the docs phase, the Dev team runs implementation immediately. See docs/sdl
 
 const CLAUDE_SDLC_CONTENT = `## SDLC Workflow
 
-**Trigger on idea:** When the user sends an idea, feature request, or requirement, run the pipeline continuously: Phase 1 (PO) → 2 → … → 7 (Deploy). One sub-agent/role per phase; do not handle the whole flow as the main agent only. Do not stop after one phase unless the user asks.
+**Trigger on idea:** When the user sends an idea, feature request, or requirement, run the pipeline continuously: Phase 1 (PO) → 2 → … → 7 (Deploy). One role per phase (single agent = switch role each phase). Do not stop after one phase unless the user asks.
 
-1. **PO** — PRD, user stories → docs/sdlc/po/
-2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/
+1. **PO** — PRD, user stories → docs/sdlc/po/{epic-slug}/ (one folder per epic)
+2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/{epic-slug}/ (one folder per epic)
 3. **Architect** — ADRs, diagrams → docs/sdlc/architecture/
 4. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
-5. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/
+5. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
 6. **Dev** — After docs phase → **run implementation immediately**. Tech Lead + Senior Dev → docs/sdlc/dev/{role}/
-7. **QE (testing)** — QE Lead + Senior QE (automation)
+7. **QE (testing)** — QE Lead (15+ yrs automation) + Senior QE (10+ yrs) → docs/sdlc/qe/{epic-slug}/ (same folder per epic)
 8. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
 
 After the docs phase (Technical BA + QE docs), the Dev team runs implementation immediately. See docs/sdlc/agents/
@@ -437,7 +444,7 @@ For Cursor, see .cursor/rules/sdlc-workflow.mdc
 ## Trigger and orchestration
 
 - **When the user sends an idea, feature request, or requirement:** Start the pipeline and run it **continuously through deployment** (Phase 1 → 2 → … → 7). Do not handle everything in one main-agent response.
-- **One sub-agent (role) per phase:** Execute each phase as that role only; write artifacts to the right folder; then **continue to the next phase** without waiting. If the tool supports sub-agents, spawn one per phase; otherwise the main agent runs each phase in sequence.
+- **One role per phase:** Execute each phase as that role only; write artifacts to the right folder; then continue to the next phase. In Cursor there is one agent — it simulates the pipeline by adopting one role per phase in sequence.
 - **Do not stop** after PO or any single phase unless the user explicitly asks to stop. Run through to Deploy.
 
 ## Flow
@@ -457,7 +464,7 @@ User Request → PO → Business BA → Architect → Technical BA → QE (docs)
 | 4 | Technical BA | API specs, tech breakdown |
 | 5a | QE (docs) | Test plan, test cases |
 | 5b | Dev | Code, unit tests (≥90%) |
-| 6 | QE (testing) | QE Lead + Senior QE, automation, sign-off |
+| 6 | QE (testing) | QE Lead (15+ yrs automation) + Senior QE (10+ yrs), automation, sign-off |
 | 7 | Deploy | Docker Compose + K8s |
 
 **Sub-agents**: Each role runs as a sub-agent (PO, Business BA, Architect, Technical BA, QE Lead, Senior QE, Tech Lead, Senior Dev). See docs/sdlc/agents/
@@ -466,11 +473,11 @@ User Request → PO → Business BA → Architect → Technical BA → QE (docs)
 
 ### Phase 1: PO
 - Epic brief, user stories, acceptance criteria
-- Output: \`docs/sdlc/po/\`
+- Output: \`docs/sdlc/po/{epic-slug}/\` — **one folder per epic**; do not put all epics in one file
 
 ### Phase 2: Business BA
 - Functional requirements, process flows, use cases
-- Output: \`docs/sdlc/ba/business/\`
+- Output: \`docs/sdlc/ba/business/{epic-slug}/\` — **one folder per epic** (same slug as PO); do not merge into one file
 
 ### Phase 3: Architect
 - System context, container diagram, ADRs, tech stack
@@ -482,7 +489,7 @@ User Request → PO → Business BA → Architect → Technical BA → QE (docs)
 
 ### Phase 5a: QE (Docs)
 - Test plan, test cases
-- Output: \`docs/sdlc/qe/\`
+- Output: \`docs/sdlc/qe/{epic-slug}/\` — **one folder per epic**; do not put all epics in one file
 - **After docs phase → Dev team runs implementation immediately** (no extra gate)
 
 ### Phase 5b: Dev Teams
@@ -492,8 +499,8 @@ User Request → PO → Business BA → Architect → Technical BA → QE (docs)
 - **Then**: QE starts testing phase
 
 ### Phase 6: QE (Testing — automation)
-- **QE Lead**: Test framework decision; review test code. Output: \`docs/sdlc/qe/qe-lead/\`
-- **Senior QE (10+ yrs)**: Write automation tests. Output: \`docs/sdlc/qe/senior-qe/\`
+- **QE Lead (15+ yrs automation)**: Test strategy, framework choice, automation architecture; review test code. Output per epic: \`docs/sdlc/qe/{epic-slug}/\`
+- **Senior QE (10+ yrs)**: Write automation tests per QE Lead's strategy. Output per epic: \`docs/sdlc/qe/{epic-slug}/\`
 
 ### Phase 7: Deploy
 - After pipeline completes → deploy with **Docker Compose** (local/staging) and **Kubernetes** (production)
@@ -508,25 +515,23 @@ const ORCHESTRATION_MD = `# Pipeline orchestration
 
 When the user sends an **idea**, **feature request**, or **requirement** (e.g. "I want a login page", "We need an API for X"):
 
-1. **Do not** answer with the main agent only (e.g. one reply that does a bit of everything).
-2. **Trigger the full pipeline** and run **Phase 1 → 2 → … → 7 in sequence**.
-3. **One role (sub-agent) per phase:** For each phase, act only as that role, write outputs to the correct \`docs/sdlc/...\` folder, then **continue to the next phase** without asking the user to "run next step".
-4. **Run through to Deploy.** Do not stop after PO, BA, or Dev unless the user explicitly says to stop.
+1. **Trigger the full pipeline** and run **Phase 1 → 2 → … → 7 in sequence**.
+2. **One role per phase:** For each phase, act only as that role, write outputs to the correct \`docs/sdlc/...\` folder, then **continue to the next phase** without asking the user to "run next step".
+3. **Run through to Deploy.** Do not stop after PO, BA, or Dev unless the user explicitly says to stop.
 
-## How to run (by platform)
+## How it runs (Cursor and similar)
 
-- **If the tool has sub-agents:** Spawn one sub-agent per phase; pass previous phase output as input; run in order.
-- **If only one agent:** Simulate by executing Phase 1 (PO) → write \`docs/sdlc/po/...\` → then Phase 2 (Business BA) → … → Phase 7 (Deploy). One continuous run or explicit "Phase 1 done, starting Phase 2" steps.
+There is **one agent** per conversation. It simulates the pipeline by **adopting one role per phase** in order: Phase 1 as PO only → Phase 2 as Business BA only → … → Phase 7 as Deploy. Do not mix roles in one step. If the tool later supports separate agents per phase, use that; otherwise this single-agent simulation is correct.
 
 ## Checklist per run
 
-- [ ] Phase 1 PO: artifacts in \`docs/sdlc/po/\`
-- [ ] Phase 2 Business BA: \`docs/sdlc/ba/business/\`
+- [ ] Phase 1 PO: artifacts in \`docs/sdlc/po/{epic-slug}/\` (one folder per epic)
+- [ ] Phase 2 Business BA: \`docs/sdlc/ba/business/{epic-slug}/\` (one folder per epic)
 - [ ] Phase 3 Architect: \`docs/sdlc/architecture/\`
 - [ ] Phase 4 Technical BA: \`docs/sdlc/ba/technical/\`
-- [ ] Phase 5a QE docs: \`docs/sdlc/qe/\`
+- [ ] Phase 5a QE docs: \`docs/sdlc/qe/{epic-slug}/\` (one folder per epic)
 - [ ] Phase 5b Dev: code + unit tests, \`docs/sdlc/dev/\`
-- [ ] Phase 6 QE testing: automation, sign-off
+- [ ] Phase 6 QE testing: automation, sign-off → \`docs/sdlc/qe/{epic-slug}/\`
 - [ ] Phase 7 Deploy: \`docs/sdlc/deploy/\`, Docker Compose + K8s
 `;
 
@@ -536,6 +541,12 @@ Templates and examples. Use \`*.template.md\` as starting points.
 Templates are written for all project types: web, mobile, API-only, library/SDK, CLI, data/ML, platform/infra.
 Sub-agents: docs/sdlc/agents/
 Deploy: docs/sdlc/deploy/ (Docker Compose + K8s)
+
+## Folder structure: one per epic/feature
+
+- **PO**: \`docs/sdlc/po/{epic-slug}/\` — one folder per epic (e.g. \`job-scheduler-event-bus\`). Files inside: epic-brief.md, user-stories.md, etc. Do not put all epics in one file.
+- **Business BA**: \`docs/sdlc/ba/business/{epic-slug}/\` — same slug as PO. Files: functional-requirements.md, process-flows.md, etc. Do not merge all epics into one file.
+- **QE**: \`docs/sdlc/qe/{epic-slug}/\` — same slug as PO/BA. Files: test-plan.md, test-cases.md, automation. Do not put all epics in one file.
 `;
 
 const AGENTS_README = `# Sub-Agents
@@ -544,11 +555,11 @@ Every role in the SDLC runs as a **sub-agent**. Each phase is assigned to a corr
 
 | Role | Sub-agent | Input | Output |
 |------|-----------|--------|--------|
-| PO | po | User request | docs/sdlc/po/ |
-| Business BA | business-ba | docs/sdlc/po/ | docs/sdlc/ba/business/ |
+| PO | po | User request | docs/sdlc/po/{epic-slug}/ (one folder per epic) |
+| Business BA | business-ba | docs/sdlc/po/{epic-slug}/ | docs/sdlc/ba/business/{epic-slug}/ (one folder per epic) |
 | Architect | architect | docs/sdlc/ba/business/ | docs/sdlc/architecture/ |
 | Technical BA | technical-ba | docs/sdlc/architecture/ | docs/sdlc/ba/technical/ |
-| QE (docs) | qe-docs | docs/sdlc/ba/technical/ | docs/sdlc/qe/ (test plan) |
+| QE (docs) | qe-docs | docs/sdlc/ba/technical/ | docs/sdlc/qe/{epic-slug}/ (one folder per epic) |
 | Tech Lead | tech-lead | Technical spec | Review, merge, docs/sdlc/dev/tech-lead/ |
 | Senior Dev | senior-dev | Spec + test plan | After docs → run implementation immediately. Code, unit tests (≥90%) |
 | Senior Frontend | frontend | UI spec, API contract | Web UI, docs/sdlc/dev/frontend/ |
@@ -557,13 +568,13 @@ Every role in the SDLC runs as a **sub-agent**. Each phase is assigned to a corr
 | Senior Embedded | embedded | HW/spec, interfaces | Firmware, IoT, docs/sdlc/dev/embedded/ |
 | Senior Data/ML | data-ml | Data spec, models | ETL, models, docs/sdlc/dev/data-ml/ |
 | Senior Platform | platform | Infra spec | CI/CD, observability, docs/sdlc/dev/platform/ |
-| QE Lead | qe-lead | Test plan | Test framework, review, docs/sdlc/qe/qe-lead/ |
-| Senior QE | senior-qe | Test plan + framework | Automation tests, docs/sdlc/qe/senior-qe/ |
+| QE Lead | qe-lead | Test plan | 15+ yrs automation: strategy, framework, review → docs/sdlc/qe/{epic-slug}/ |
+| Senior QE | senior-qe | Test plan + framework | Automation tests → docs/sdlc/qe/{epic-slug}/ |
 | Deploy | deploy | QE sign-off | Docker Compose + K8s, docs/sdlc/deploy/ |
 
 Orchestrator: run each sub-agent in order; hand off output → input of the next sub-agent.
 
-**Trigger:** On user idea/request, run the full pipeline (see docs/sdlc/ORCHESTRATION.md). Do not run the whole flow as the main agent only; do not stop after one phase until Deploy unless the user asks.
+**Trigger:** On user idea/request, run the full pipeline (see docs/sdlc/ORCHESTRATION.md). One role per phase; single agent simulates by switching role each phase. Do not stop after one phase until Deploy unless the user asks.
 `;
 
 const DEPLOY_README = `# Deploy
@@ -686,8 +697,24 @@ Must have / Should have / Could have
 
 const PO_README = `# PO (Product Owner)
 
-Create PRD, epic briefs, user stories here.
-Use epic-brief.template.md as starting point.
+**One folder per epic/feature.** Do not put all epics in one file.
+
+- Create a folder per epic: \`docs/sdlc/po/{epic-slug}/\`
+- Folder name = epic/feature slug (e.g. \`job-scheduler-event-bus\`, \`user-auth\`).
+- Inside that folder: \`epic-brief.md\`, \`user-stories.md\`, \`prd.md\` (or similar) for that epic only.
+
+Example:
+\`\`\`
+docs/sdlc/po/
+  job-scheduler-event-bus/
+    epic-brief.md
+    user-stories.md
+  user-auth/
+    epic-brief.md
+    user-stories.md
+\`\`\`
+
+Use epic-brief.template.md as starting point for each epic.
 `;
 
 const BA_FR_TEMPLATE = `## FR-001: [Title]
@@ -713,8 +740,22 @@ const BA_FR_TEMPLATE = `## FR-001: [Title]
 
 const BA_BUSINESS_README = `# Business BA
 
-Functional requirements, process flows, use cases.
-Use functional-requirement.template.md for FRS items.
+**One folder per epic/feature.** Do not put all epics/features in one file.
+
+- Use the same epic/feature slug as PO: \`docs/sdlc/ba/business/{epic-slug}/\`
+- Inside that folder: \`functional-requirements.md\`, \`process-flows.md\`, \`use-cases.md\` (or similar) for that epic only.
+
+Example:
+\`\`\`
+docs/sdlc/ba/business/
+  job-scheduler-event-bus/
+    functional-requirements.md
+    process-flows.md
+  user-auth/
+    functional-requirements.md
+\`\`\`
+
+Use functional-requirement.template.md for FRS items. One file per epic, or one folder per epic with multiple files.
 `;
 
 const TECH_API_TEMPLATE = `# Interface / contract spec
@@ -863,23 +904,42 @@ const QE_TC_TEMPLATE = `## TC-001: [Scenario]
 
 const QE_README = `# QE (Quality Engineering)
 
+**One folder per epic/feature.** Do not put all epics in one file.
+
+- Use the same epic/feature slug as PO and Business BA: \`docs/sdlc/qe/{epic-slug}/\`
+- Inside that folder: \`test-plan.md\`, \`test-cases.md\` (Phase 5a), and for Phase 6: automation notes, framework decision for that epic, etc.
+
+Example:
+\`\`\`
+docs/sdlc/qe/
+  job-scheduler-event-bus/
+    test-plan.md
+    test-cases.md
+    automation/   (Phase 6: Senior QE output)
+  user-auth/
+    test-plan.md
+    test-cases.md
+\`\`\`
+
 Two phases:
-1. **Docs phase** — Test plan, test cases. Done → **Dev runs implementation immediately**.
-2. **Testing phase** — After Dev completes unit tests: QE team writes automation tests.
-   - **QE Lead**: Decide test framework; review test code → docs/sdlc/qe/qe-lead/
-   - **Senior QE (10+ yrs)**: Write automation tests → docs/sdlc/qe/senior-qe/
+1. **Docs phase** — Test plan, test cases per epic in \`qe/{epic-slug}/\`. Done → **Dev runs implementation immediately**.
+2. **Testing phase** — After Dev completes unit tests: QE Lead (15+ yrs automation: strategy, framework, review) + Senior QE (automation) output to the same \`qe/{epic-slug}/\` (or subfolders there).
 
 Use test-case.template.md for test cases.
 `;
 
-const QE_LEAD_README = `# QE Lead
+const QE_LEAD_README = `# QE Lead (15+ years exp in test automation)
+
+**Profile**: 15+ years of experience in test automation, test strategy, and quality engineering. Owns test automation strategy, framework selection, and quality gates across the project.
 
 **Responsibilities**:
-- Decide test framework (e.g. Playwright, Cypress, Jest, etc.)
-- Review test code
-- Ensure automation quality and coverage
+- **Test automation strategy**: Define scope of automation (unit, integration, E2E, API, performance), pyramid and tooling alignment with tech stack.
+- **Framework and tooling**: Decide and document test frameworks (e.g. Playwright, Cypress, Jest, RestAssured, K6) and CI integration; justify choices in ADRs.
+- **Automation architecture**: Design test structure, layers, fixtures, reporting, and flake prevention (retries, stability, env handling).
+- **Review and standards**: Review test code for coverage, maintainability, and alignment with framework; define coding and naming standards for tests.
+- **Quality gates**: Define and enforce gates (e.g. coverage thresholds, required suites before merge, regression criteria).
 
-**Docs**: Test framework ADR, review checklist.
+**Output**: Test framework ADR, automation strategy doc, review checklist, and per-epic guidance in \`docs/sdlc/qe/{epic-slug}/\`.
 `;
 
 const QE_SENIOR_README = `# Senior QE (10+ years exp)

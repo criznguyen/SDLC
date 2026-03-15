@@ -13,7 +13,7 @@ User Request → PO → Business BA → Architect → Technical BA → QE (docs)
 - **After completion** → deploy immediately with **Docker Compose** (local/staging) and **Kubernetes** (production) — `docs/sdlc/deploy/`.
 - **QE (docs)**: Test plan, test cases
 - **Dev**: After docs phase → **run implementation immediately**. Tech Lead (review, merge) + Senior Dev (implement, Unit Test ≥90%)
-- **QE (testing)**: QE Lead (test framework, review) + Senior QE (10+ yrs, write automation tests)
+- **QE (testing)**: QE Lead (15+ yrs automation: strategy, framework, review) + Senior QE (10+ yrs, write automation tests)
 
 ## Usage
 
@@ -43,11 +43,11 @@ This creates:
 docs/sdlc/
 ├── SDLC-WORKFLOW.md          # Main workflow (use with Claude)
 ├── reference.md
-├── po/                       # Product Owner
+├── po/                       # Product Owner (one folder per epic: po/{epic-slug}/)
 │   ├── epic-brief.template.md
 │   └── README.md
 ├── ba/
-│   ├── business/             # Business BA
+│   ├── business/             # Business BA (one folder per epic: ba/business/{epic-slug}/)
 │   │   ├── functional-requirement.template.md
 │   │   └── README.md
 │   └── technical/            # Technical BA
@@ -57,12 +57,12 @@ docs/sdlc/
 ├── architecture/             # Architect
 │   ├── adr.template.md
 │   └── README.md
-├── qe/                       # QE (docs + testing)
+├── qe/                       # QE (one folder per epic: qe/{epic-slug}/)
 │   ├── test-case.template.md
 │   ├── README.md
-│   ├── qe-lead/              # QE Lead: test framework, review test code
+│   ├── qe-lead/              # QE Lead 15+ yrs automation: strategy, framework, review (output per epic)
 │   │   └── README.md
-│   └── senior-qe/            # Senior QE 10+ yrs: write automation tests
+│   └── senior-qe/            # Senior QE 10+ yrs: automation (output per epic)
 │       └── README.md
 ├── dev/                      # Dev team (all Senior 10+ yrs; roles vary by project)
 │   ├── implementation-roles.template.md
