@@ -6,7 +6,7 @@ For Cursor, see .cursor/rules/sdlc-workflow.mdc
 ## Flow
 
 ```
-User Request → PO → Business BA → Architect → Technical BA → Dev Teams → QE → Deploy
+User Request → PO → Business BA → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Deploy
 ```
 
 ## Phase Checklist
@@ -18,8 +18,9 @@ User Request → PO → Business BA → Architect → Technical BA → Dev Teams
 | 2 | Business BA | FRS, process flows |
 | 3 | Architect | ADRs, system diagrams |
 | 4 | Technical BA | API specs, tech breakdown |
-| 5 | Dev Teams | Code, tests |
-| 6 | QE | Test plan, sign-off |
+| 5a | QE (docs) | Test plan, test cases |
+| 5b | Dev | Code, unit tests (≥90%) |
+| 6 | QE (testing) | Automation + manual, sign-off |
 | 7 | Ops | Deploy, monitor |
 
 ## Phase Details
@@ -40,11 +41,21 @@ User Request → PO → Business BA → Architect → Technical BA → Dev Teams
 - API specs, DB schema, team breakdown
 - Output: `docs/sdlc/ba/technical/`
 
-### Phase 5: Dev Teams
-- Backend, Frontend, Mobile — implement per spec
-
-### Phase 6: QE
-- Test plan, test cases, sign-off
+### Phase 5a: QE (Docs)
+- Test plan, test cases — **before Dev implements**
 - Output: `docs/sdlc/qe/`
+- **Then**: Dev team starts implementation
+
+### Phase 5b: Dev Teams
+- **Tech Lead (15+ yrs)**: Tech stack, libraries; review & merge. Output: `docs/sdlc/dev/tech-lead/`
+- **Senior Developer (10+ yrs)**: Implement features. Output: `docs/sdlc/dev/senior-developer/`
+- **Requirement**: Unit Test coverage **≥ 90%**
+- **Then**: QE starts testing phase
+
+### Phase 6: QE (Testing)
+- After Dev unit tests complete: automation tests + manual tests, sign-off
+
+### Phase 7: Deploy
+- Release, monitor
 
 See [reference.md](./reference.md) for templates.

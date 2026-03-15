@@ -95,6 +95,8 @@ async function generateFromInline(cwd) {
     join(base, "ba", "technical"),
     join(base, "architecture"),
     join(base, "qe"),
+    join(base, "dev", "tech-lead"),
+    join(base, "dev", "senior-developer"),
   ];
 
   for (const d of dirs) {
@@ -115,6 +117,8 @@ async function generateFromInline(cwd) {
     ["architecture/README.md", ARCH_README],
     ["qe/test-case.template.md", QE_TC_TEMPLATE],
     ["qe/README.md", QE_README],
+    ["dev/tech-lead/README.md", DEV_TECH_LEAD_README],
+    ["dev/senior-developer/README.md", DEV_SENIOR_README],
   ];
 
   for (const [rel, content] of files) {
@@ -125,21 +129,21 @@ async function generateFromInline(cwd) {
 }
 
 const CURSOR_RULE_CONTENT = `---
-description: SDLC multi-role workflow (PO → BA → Architect → Tech BA → Dev → QE)
+description: SDLC multi-role workflow (PO → BA → Architect → Tech BA → QE docs → Dev → QE testing)
 alwaysApply: false
 globs: docs/sdlc/**/*, **/*.md
 ---
 
 # SDLC Workflow
 
-When working on requirements or docs, follow the SDLC phases:
-
 1. **PO** — PRD, user stories → docs/sdlc/po/
 2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/
 3. **Architect** — ADRs, diagrams → docs/sdlc/architecture/
 4. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
-5. **Dev Teams** — Implementation
-6. **QE** — Test plan, test cases → docs/sdlc/qe/
+5. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/
+6. **Dev** — Tech Lead (review, merge) + Senior Dev (implement, ≥90% unit test) → docs/sdlc/dev/{role}/
+7. **QE (testing)** — Automation + manual tests, sign-off
+8. **Deploy** — Release, monitor
 
 Full workflow: docs/sdlc/SDLC-WORKFLOW.md
 `;
@@ -156,7 +160,7 @@ Sequential workflow for approaching user requirements. Each phase produces docs/
 ## Flow Overview
 
 \`\`\`
-User Request → PO → Business BA → Architect → Technical BA → Dev Teams → QE → Deploy
+User Request → PO → Business BA → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Deploy
 \`\`\`
 
 **Determine current phase** before acting. If unsure, ask: "Which phase are we in?"
@@ -190,17 +194,30 @@ User Request → PO → Business BA → Architect → Technical BA → Dev Teams
 
 **Role**: Translate business + architecture into implementable specs.
 **Deliverables**: API specs, DB schema, team breakdown, acceptance criteria per ticket.
-**Output**: \`docs/sdlc/ba/technical/\` — **Handoff to Dev Teams.**
+**Output**: \`docs/sdlc/ba/technical/\` — **Handoff to QE + Dev.**
 
-## Phase 5: Dev Teams
+## Phase 5a: QE (Docs phase)
 
-**Role**: Implement. Backend | Frontend | Mobile | Data / DevOps.
-**Output**: Code + tests. **Handoff to QE.**
+**Role**: Create test plan, test cases before Dev implements.
+**Deliverables**: Test plan, test cases.
+**Output**: \`docs/sdlc/qe/\` — Ready for Dev to start implementation.
 
-## Phase 6: QE (Quality Engineering)
+## Phase 5b: Dev Teams
 
-**Role**: Test against acceptance criteria; ensure quality.
-**Deliverables**: Test plan, test cases, sign-off.
+**Trigger**: After QE docs complete. **Start implementation.**
+
+**Roles**:
+- **Tech Lead (15+ yrs)**: Decide tech stack, libraries; review & merge code. Docs: \`docs/sdlc/dev/tech-lead/\`
+- **Senior Developer (10+ yrs)**: Implement features per spec. Docs: \`docs/sdlc/dev/senior-developer/\`
+
+**Requirements**: Unit Test coverage **≥ 90%**.
+
+**Output**: Code + unit tests. **Handoff to QE (testing).**
+
+## Phase 6: QE (Testing phase)
+
+**Trigger**: After Dev completes unit tests.
+**Role**: Run tests, include **automation tests**, sign-off.
 **Output**: Test report. **Handoff to Deploy.**
 
 ## Phase 7: Deploy & Maintenance
@@ -216,8 +233,9 @@ User Request → PO → Business BA → Architect → Technical BA → Dev Teams
 | 2 | Business BA | FRS, process flows |
 | 3 | Architect | ADRs, system diagrams |
 | 4 | Technical BA | API specs, tech breakdown |
-| 5 | Dev Teams | Code, tests |
-| 6 | QE | Test plan, sign-off |
+| 5a | QE (docs) | Test plan, test cases |
+| 5b | Dev | Code, unit tests (≥90%) |
+| 6 | QE (testing) | Automation + manual, sign-off |
 | 7 | Ops | Deploy, monitor |
 
 See reference.md for templates.
@@ -240,21 +258,24 @@ POST /api/v1/[resource] — Purpose, Request, Response, Contract
 
 ## QE: Test Case
 TC-001: [Scenario] — Precondition, Steps, Expected, Links to AC
+
+## Dev Team
+- Tech Lead (15+ yrs): tech stack, libraries, review & merge → docs/sdlc/dev/tech-lead/
+- Senior Dev (10+ yrs): implement, Unit Test ≥90% → docs/sdlc/dev/senior-developer/
 `;
 
 const CLAUDE_SDLC_CONTENT = `## SDLC Workflow
-
-When working on requirements, features, or handoffs, follow these phases:
 
 1. **PO** — PRD, user stories → docs/sdlc/po/
 2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/
 3. **Architect** — ADRs, diagrams → docs/sdlc/architecture/
 4. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
-5. **Dev Teams** — Implementation (Backend, Frontend, Mobile)
-6. **QE** — Test plan, test cases → docs/sdlc/qe/
-7. **Deploy** — Release, monitor
+5. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/
+6. **Dev** — After QE docs: Tech Lead (15+ yrs, tech stack, review & merge) + Senior Dev (10+ yrs, implement, Unit Test ≥90%) → docs/sdlc/dev/{role}/
+7. **QE (testing)** — After Dev unit tests: automation + manual, sign-off
+8. **Deploy** — Release, monitor
 
-Flow: User Request → PO → Business BA → Architect → Technical BA → Dev Teams → QE → Deploy
+Flow: ... → Technical BA → QE docs → Dev → QE testing → Deploy
 Ask "Which phase are we in?" if unclear.
 `;
 
@@ -266,7 +287,7 @@ For Cursor, see .cursor/rules/sdlc-workflow.mdc
 ## Flow
 
 \`\`\`
-User Request → PO → Business BA → Architect → Technical BA → Dev Teams → QE → Deploy
+User Request → PO → Business BA → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Deploy
 \`\`\`
 
 ## Phase Checklist
@@ -278,8 +299,9 @@ User Request → PO → Business BA → Architect → Technical BA → Dev Teams
 | 2 | Business BA | FRS, process flows |
 | 3 | Architect | ADRs, system diagrams |
 | 4 | Technical BA | API specs, tech breakdown |
-| 5 | Dev Teams | Code, tests |
-| 6 | QE | Test plan, sign-off |
+| 5a | QE (docs) | Test plan, test cases |
+| 5b | Dev | Code, unit tests (≥90%) |
+| 6 | QE (testing) | Automation + manual, sign-off |
 | 7 | Ops | Deploy, monitor |
 
 ## Phase Details
@@ -300,12 +322,22 @@ User Request → PO → Business BA → Architect → Technical BA → Dev Teams
 - API specs, DB schema, team breakdown
 - Output: \`docs/sdlc/ba/technical/\`
 
-### Phase 5: Dev Teams
-- Backend, Frontend, Mobile — implement per spec
-
-### Phase 6: QE
-- Test plan, test cases, sign-off
+### Phase 5a: QE (Docs)
+- Test plan, test cases — **before Dev implements**
 - Output: \`docs/sdlc/qe/\`
+- **Then**: Dev team starts implementation
+
+### Phase 5b: Dev Teams
+- **Tech Lead (15+ yrs)**: Tech stack, libraries; review & merge. Output: \`docs/sdlc/dev/tech-lead/\`
+- **Senior Developer (10+ yrs)**: Implement features. Output: \`docs/sdlc/dev/senior-developer/\`
+- **Requirement**: Unit Test coverage **≥ 90%**
+- **Then**: QE starts testing phase
+
+### Phase 6: QE (Testing)
+- After Dev unit tests complete: automation tests + manual tests, sign-off
+
+### Phase 7: Deploy
+- Release, monitor
 
 See [reference.md](./reference.md) for templates.
 `;
@@ -433,8 +465,31 @@ const QE_TC_TEMPLATE = `## TC-001: [Scenario]
 
 const QE_README = `# QE (Quality Engineering)
 
-Test plan, test cases, sign-off checklist.
+Two phases:
+1. **Docs phase** — Test plan, test cases (before Dev implements). Output ready for Dev team.
+2. **Testing phase** — After Dev completes unit tests: run tests, include automation tests, sign-off.
+
 Use test-case.template.md for test cases.
+`;
+
+const DEV_TECH_LEAD_README = `# Tech Lead (15+ years exp)
+
+**Responsibilities**:
+- Decide tech stack, frameworks, libraries
+- Review and merge code
+- Ensure architecture alignment
+
+**Docs**: ADRs, tech decisions, review checklist.
+`;
+
+const DEV_SENIOR_README = `# Senior Developer (10+ years exp)
+
+**Responsibilities**:
+- Implement features per Technical BA spec
+- Write code with Unit Test coverage **≥ 90%**
+- Follow Tech Lead's tech decisions
+
+**Docs**: Implementation notes, API usage.
 `;
 
 main();

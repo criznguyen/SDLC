@@ -5,8 +5,12 @@ Scaffold SDLC workflow docs and templates into your project. Works with **Cursor
 ## Flow
 
 ```
-User Request → PO → Business BA → Architect → Technical BA → Dev Teams → QE → Deploy
+User Request → PO → Business BA → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Deploy
 ```
+
+- **QE (docs)**: Test plan, test cases — before Dev implements
+- **Dev**: Tech Lead (review, merge) + Senior Dev (implement, Unit Test ≥90%)
+- **QE (testing)**: After Dev unit tests — automation + manual, sign-off
 
 ## Usage
 
@@ -43,9 +47,14 @@ docs/sdlc/
 ├── architecture/             # Architect
 │   ├── adr.template.md
 │   └── README.md
-└── qe/                       # QE
-    ├── test-case.template.md
-    └── README.md
+├── qe/                       # QE (docs + testing)
+│   ├── test-case.template.md
+│   └── README.md
+└── dev/                      # Dev team (per role)
+    ├── tech-lead/            # Tech Lead 15+ yrs: tech stack, review & merge
+    │   └── README.md
+    └── senior-developer/     # Senior Dev 10+ yrs: implement, Unit Test ≥90%
+        └── README.md
 
 .cursor/rules/
 └── sdlc-workflow.mdc         # Cursor rule
