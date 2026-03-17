@@ -172,6 +172,8 @@ async function generateFromInline(cwd) {
     join(base, "dev", "embedded"),
     join(base, "dev", "data-ml"),
     join(base, "dev", "platform"),
+    join(base, "security"),
+    join(base, "principle-engineer"),
     join(base, "agents"),
     join(base, "deploy"),
     join(base, "deploy", "k8s"),
@@ -208,6 +210,8 @@ async function generateFromInline(cwd) {
     ["dev/embedded/README.md", DEV_EMBEDDED_README],
     ["dev/data-ml/README.md", DEV_DATA_ML_README],
     ["dev/platform/README.md", DEV_PLATFORM_README],
+    ["security/README.md", SECURITY_README],
+    ["principle-engineer/README.md", PRINCIPLE_ENGINEER_README],
     ["agents/README.md", AGENTS_README],
     ["deploy/README.md", DEPLOY_README],
     ["deploy/docker-compose.yml.template", DOCKER_COMPOSE_TEMPLATE],
@@ -241,9 +245,11 @@ globs: docs/sdlc/**/*, **/*.md
 6. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
 7. **Dev** — After docs phase → **run implementation immediately**. Tech Lead + implementation roles → docs/sdlc/dev/{role}/
 8. **QE (testing)** — QE Lead (15+ yrs automation) + Senior QE (10+ yrs) → docs/sdlc/qe/{epic-slug}/
-9. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
+9. **Security** — Audit security risk → docs/sdlc/security/
+10. **Principle Engineer** — Audit logic, architecture → docs/sdlc/principle-engineer/
+11. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/ (after Security + PE sign-off; fix loop until no issues)
 
-**Each role runs as a sub-agent.** Design uses Pencil.dev MCP; UX drives tech (design before Architect). See docs/sdlc/agents/
+**Each role runs as a sub-agent.** Design uses Pencil.dev MCP; UX drives tech. See docs/sdlc/agents/
 Full workflow: docs/sdlc/SDLC-WORKFLOW.md
 `;
 
@@ -261,7 +267,7 @@ Sequential workflow; **each role runs as a sub-agent**. Each phase produces docs
 **When the user sends an idea, feature request, or new requirement:**
 1. **Trigger the pipeline** and run it **continuously through deployment** (Phase 1 → 2 → … → 7).
 2. **One role per phase.** For each phase, act **only** as that role (e.g. only PO in phase 1, only Business BA in phase 2). Produce that phase's outputs into the correct folder, then **continue to the next phase** without waiting for the user.
-3. **Run in order:** PO → Business BA → **Design (if app/web, PO+BA review loop)** → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Deploy. Design comes before Architect so UX drives technical decisions. Do not stop after one phase unless the user explicitly asks to stop.
+3. **Run in order:** PO → Business BA → **Design (if app/web, PO+BA review loop)** → Architect → Technical BA → QE (docs) → Dev → QE (testing) → **Security + Principle Engineer audit → fix loop until all issues resolved** → Deploy. Do not stop after one phase unless the user explicitly asks to stop.
 
 **Note:** In Cursor and similar tools there is a single agent per conversation. "Sub-agent" means **one role per phase** — the same agent must adopt exactly one role per phase and run phases in sequence (do not mix roles in one step). If the platform later supports spawning separate agents per phase, use that; otherwise this single agent simulates the pipeline by switching role each phase.
 
@@ -270,7 +276,7 @@ Sequential workflow; **each role runs as a sub-agent**. Each phase produces docs
 ## Flow Overview
 
 \`\`\`
-User Request → PO → Business BA → Design (if app/web, PO+BA review loop) → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Deploy (Docker Compose + K8s)
+User Request → PO → Business BA → Design (if app/web) → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Security + PE audit → [fix loop until no issues] → Deploy (Docker Compose + K8s)
 \`\`\`
 
 **Determine current phase** before acting. If user sent an idea, assume Phase 0 and start from Phase 1.
@@ -354,13 +360,22 @@ User Request → PO → Business BA → Design (if app/web, PO+BA review loop) �
 - **QE Lead (15+ yrs automation)**: Test strategy, framework choice, automation architecture, review test code. Output per epic: \`docs/sdlc/qe/{epic-slug}/\`
 - **Senior QE (10+ yrs)**: Write automation tests per QE Lead's strategy. Output per epic: \`docs/sdlc/qe/{epic-slug}/\` (e.g. automation/ or test files there)
 
-**Output**: Automation tests, test report. **Handoff to Deploy.**
+**Output**: Automation tests, test report. **Handoff to Security + Principle Engineer.**
 
-## Phase 7: Deploy
+## Phase 8: Security + Principle Engineer (audit → fix loop)
 
-**Trigger**: After QE sign-off.
+**Trigger**: After QE testing sign-off.
+**Roles** (can run in parallel):
+- **Security team**: Audit security risk (OWASP, auth, secrets, infra). Output: \`docs/sdlc/security/\`
+- **Principle Engineer**: Audit logic, architecture alignment, correctness. Output: \`docs/sdlc/principle-engineer/\`
+
+**Fix loop**: If issues found → **Dev fixes** → re-audit by Security + Principle Engineer. **Repeat until all issues resolved.** Only when sign-off → **Handoff to Deploy.**
+
+## Phase 9: Deploy
+
+**Trigger**: After Security + Principle Engineer sign-off.
 **Role**: Deploy with **Docker Compose** (local/staging) and **Kubernetes** (production).
-**Output**: \`docs/sdlc/deploy/\` — docker-compose.yml, k8s manifests. Deploy right after pipeline completes.
+**Output**: \`docs/sdlc/deploy/\` — docker-compose.yml, k8s manifests.
 
 ## Quick Phase Checklist
 
@@ -375,9 +390,10 @@ User Request → PO → Business BA → Design (if app/web, PO+BA review loop) �
 | 6 | QE (docs) | Test plan, test cases |
 | 7 | Dev | Code, unit tests (≥90%) |
 | 8 | QE (testing) | QE Lead (15+ yrs automation) + Senior QE (10+ yrs), automation, sign-off |
-| 9 | Deploy | Docker Compose + K8s |
+| 9 | Security + Principle Engineer | Security + logic audit; fix loop until all issues resolved; sign-off → Deploy |
+| 10 | Deploy | Docker Compose + K8s |
 
-**Sub-agents**: Each role = one sub-agent. Design uses Pencil.dev MCP; UX drives tech. See docs/sdlc/agents/
+**Sub-agents**: Each role = one sub-agent. Design uses Pencil.dev MCP. See docs/sdlc/agents/
 See reference.md for templates.
 `;
 
@@ -418,11 +434,13 @@ TC-001: [Scenario] — Precondition, Steps, Expected, Links to AC
 - Senior Dev (10+ yrs): implement, Unit Test ≥90% → docs/sdlc/dev/senior-developer/
 - By project (all Senior 10+ yrs): Senior Frontend, Backend, Mobile, Embedded, Data/ML, Platform → docs/sdlc/dev/{role}/
 
-## Sub-agents
-Each role = sub-agent. See docs/sdlc/agents/
+## Security + Principle Engineer (after implementation)
+- Security team: audit security risk → docs/sdlc/security/
+- Principle Engineer: audit logic, architecture → docs/sdlc/principle-engineer/
+- **Fix loop**: If issues → Dev fixes → re-audit; repeat until all resolved. Sign-off → Deploy
 
 ## Deploy
-After completion → Docker Compose + K8s. See docs/sdlc/deploy/
+After Security + Principle Engineer sign-off → Docker Compose + K8s. See docs/sdlc/deploy/
 `;
 
 const AGENTS_MD_CONTENT = `## SDLC Workflow
@@ -439,7 +457,8 @@ When working on requirements, features, or handoffs, follow these phases:
 6. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
 7. **Dev** — After docs phase → **run implementation immediately**. Tech Lead + Senior Dev → docs/sdlc/dev/{role}/
 8. **QE (testing)** — QE Lead (15+ yrs automation) + Senior QE (10+ yrs) → docs/sdlc/qe/{epic-slug}/ (same folder per epic)
-9. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
+9. **Security + Principle Engineer** — Security + logic audit; **fix loop** (Dev fixes → re-audit) until all issues resolved; sign-off before Deploy
+10. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
 
 Design before Architect (UX drives tech). After the docs phase, the Dev team runs implementation immediately. See docs/sdlc/agents/
 `;
@@ -456,9 +475,10 @@ const CLAUDE_SDLC_CONTENT = `## SDLC Workflow
 6. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
 7. **Dev** — After docs phase → **run implementation immediately**. Tech Lead + Senior Dev → docs/sdlc/dev/{role}/
 8. **QE (testing)** — QE Lead (15+ yrs automation) + Senior QE (10+ yrs) → docs/sdlc/qe/{epic-slug}/ (same folder per epic)
-9. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
+9. **Security + Principle Engineer** — Security + logic audit; **fix loop** (Dev fixes → re-audit) until all issues resolved; sign-off before Deploy
+10. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
 
-Design before Architect (UX drives tech). Pencil.dev MCP; PO and BA review; loop until approved. After the docs phase, Dev runs implementation immediately. See docs/sdlc/agents/
+Design before Architect (UX drives tech). After the docs phase, Dev runs implementation immediately. See docs/sdlc/agents/
 `;
 
 const SDLC_WORKFLOW_MD = `# SDLC Workflow (Multi-Role)
@@ -475,7 +495,7 @@ For Cursor, see .cursor/rules/sdlc-workflow.mdc
 ## Flow
 
 \`\`\`
-User Request → PO → Business BA → Design (if app/web, PO+BA review loop) → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Deploy
+User Request → PO → Business BA → Design (if app/web) → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Security + PE audit → [fix loop] → Deploy
 \`\`\`
 
 ## Phase Checklist
@@ -491,9 +511,10 @@ User Request → PO → Business BA → Design (if app/web, PO+BA review loop) �
 | 6 | QE (docs) | Test plan, test cases |
 | 7 | Dev | Code, unit tests (≥90%) |
 | 8 | QE (testing) | QE Lead (15+ yrs automation) + Senior QE (10+ yrs), automation, sign-off |
-| 9 | Deploy | Docker Compose + K8s |
+| 9 | Security + Principle Engineer | Security + logic audit; fix loop until all issues resolved; sign-off → Deploy |
+| 10 | Deploy | Docker Compose + K8s |
 
-**Sub-agents**: Each role runs as a sub-agent. Design uses Pencil.dev MCP; UX drives tech. See docs/sdlc/agents/
+**Sub-agents**: Each role runs as a sub-agent. See docs/sdlc/agents/
 
 ## Phase Details
 
@@ -533,9 +554,15 @@ User Request → PO → Business BA → Design (if app/web, PO+BA review loop) �
 ### Phase 6: QE (Testing — automation)
 - **QE Lead (15+ yrs automation)**: Test strategy, framework choice, automation architecture; review test code. Output per epic: \`docs/sdlc/qe/{epic-slug}/\`
 - **Senior QE (10+ yrs)**: Write automation tests per QE Lead's strategy. Output per epic: \`docs/sdlc/qe/{epic-slug}/\`
+- **Handoff to Security + Principle Engineer**
 
-### Phase 7: Deploy
-- After pipeline completes → deploy with **Docker Compose** (local/staging) and **Kubernetes** (production)
+### Phase 7: Security + Principle Engineer (audit → fix loop)
+- **Security team**: Audit security risk (OWASP, auth, secrets, infra). Output: \`docs/sdlc/security/\`
+- **Principle Engineer**: Audit logic, architecture alignment, correctness. Output: \`docs/sdlc/principle-engineer/\`
+- **Fix loop**: If issues found → Dev fixes → Security + PE re-audit. **Repeat until all issues resolved.** Sign-off → **Handoff to Deploy**
+
+### Phase 8: Deploy
+- After Security + Principle Engineer sign-off → deploy with **Docker Compose** (local/staging) and **Kubernetes** (production)
 - Output: \`docs/sdlc/deploy/\` — docker-compose.yml, k8s/
 
 See [reference.md](./reference.md) for templates.
@@ -547,13 +574,13 @@ const ORCHESTRATION_MD = `# Pipeline orchestration
 
 When the user sends an **idea**, **feature request**, or **requirement** (e.g. "I want a login page", "We need an API for X"):
 
-1. **Trigger the full pipeline** and run **Phase 1 → 2 → … → 7 in sequence**.
+1. **Trigger the full pipeline** and run **Phase 1 → 2 → … → 10 in sequence**.
 2. **One role per phase:** For each phase, act only as that role, write outputs to the correct \`docs/sdlc/...\` folder, then **continue to the next phase** without asking the user to "run next step".
 3. **Run through to Deploy.** Do not stop after PO, BA, or Dev unless the user explicitly says to stop.
 
 ## How it runs (Cursor and similar)
 
-There is **one agent** per conversation. It simulates the pipeline by **adopting one role per phase** in order: Phase 1 as PO only → Phase 2 as Business BA only → … → Phase 7 as Deploy. Do not mix roles in one step. If the tool later supports separate agents per phase, use that; otherwise this single-agent simulation is correct.
+There is **one agent** per conversation. It simulates the pipeline by **adopting one role per phase** in order: Phase 1 as PO only → Phase 2 as Business BA only → … → Phase 10 as Deploy. Do not mix roles in one step. If the tool later supports separate agents per phase, use that; otherwise this single-agent simulation is correct.
 
 ## Checklist per run
 
@@ -563,9 +590,10 @@ There is **one agent** per conversation. It simulates the pipeline by **adopting
 - [ ] Phase 4 Architect: \`docs/sdlc/architecture/\`
 - [ ] Phase 5 Technical BA: \`docs/sdlc/ba/technical/\`
 - [ ] Phase 6 QE docs: \`docs/sdlc/qe/{epic-slug}/\` (one folder per epic)
-- [ ] Phase 5b Dev: code + unit tests, \`docs/sdlc/dev/\`
-- [ ] Phase 6 QE testing: automation, sign-off → \`docs/sdlc/qe/{epic-slug}/\`
-- [ ] Phase 7 Deploy: \`docs/sdlc/deploy/\`, Docker Compose + K8s
+- [ ] Phase 7 Dev: code + unit tests, \`docs/sdlc/dev/\`
+- [ ] Phase 8 QE testing: automation, sign-off → \`docs/sdlc/qe/{epic-slug}/\`
+- [ ] Phase 9 Security + Principle Engineer: \`docs/sdlc/security/\`, \`docs/sdlc/principle-engineer/\`; fix loop until no issues; sign-off
+- [ ] Phase 10 Deploy: \`docs/sdlc/deploy/\`, Docker Compose + K8s
 `;
 
 const REFERENCE_MD = `# SDLC Workflow — Reference
@@ -581,6 +609,8 @@ Deploy: docs/sdlc/deploy/ (Docker Compose + K8s)
 - **Business BA**: \`docs/sdlc/ba/business/{epic-slug}/\` — same slug as PO. Files: functional-requirements.md, process-flows.md. Do not merge all epics into one file.
 - **Design (if app/web)**: \`docs/sdlc/design/{epic-slug}/\` — Pencil.dev .pen designs; PO+BA review until approved.
 - **QE**: \`docs/sdlc/qe/{epic-slug}/\` — same slug as PO/BA. Files: test-plan.md, test-cases.md, automation. Do not put all epics in one file.
+- **Security**: \`docs/sdlc/security/\` — security audit; fix loop until no issues
+- **Principle Engineer**: \`docs/sdlc/principle-engineer/\` — logic audit; fix loop until no issues
 `;
 
 const AGENTS_README = `# Sub-Agents
@@ -605,16 +635,52 @@ Every role in the SDLC runs as a **sub-agent**. Each phase is assigned to a corr
 | Senior Platform | platform | Infra spec | CI/CD, observability, docs/sdlc/dev/platform/ |
 | QE Lead | qe-lead | Test plan | 15+ yrs automation: strategy, framework, review → docs/sdlc/qe/{epic-slug}/ |
 | Senior QE | senior-qe | Test plan + framework | Automation tests → docs/sdlc/qe/{epic-slug}/ |
-| Deploy | deploy | QE sign-off | Docker Compose + K8s, docs/sdlc/deploy/ |
+| Security | security | Code, infra | Security audit → docs/sdlc/security/; fix loop until no issues |
+| Principle Engineer | principle-engineer | Code, architecture | Logic audit → docs/sdlc/principle-engineer/; fix loop until no issues |
+| Deploy | deploy | Security + PE sign-off (after fix loop) | Docker Compose + K8s, docs/sdlc/deploy/ |
 
 Orchestrator: run each sub-agent in order; hand off output → input of the next sub-agent.
 
 **Trigger:** On user idea/request, run the full pipeline (see docs/sdlc/ORCHESTRATION.md). One role per phase; single agent simulates by switching role each phase. Do not stop after one phase until Deploy unless the user asks.
 `;
 
+const SECURITY_README = `# Security Team
+
+**When:** After implementation (Dev) and QE testing. **Before** Deploy.
+
+**Role:** Audit security risk in code, APIs, infra, and configuration. Identify vulnerabilities and recommend mitigations.
+
+**Fix loop:** If issues found → Dev fixes → re-audit. Repeat until all issues resolved; then sign-off to Deploy.
+
+## Detailed tasks
+
+- [ ] **Read implementation**: Code, API specs, infra configs (docker-compose, k8s)
+- [ ] **Security audit**: OWASP Top 10, auth/authz, injection, XSS, CSRF, secrets exposure, dependency vulns
+- [ ] **Infra/ops security**: Network, TLS, RBAC, secrets management
+- [ ] **Report**: Findings, severity, remediation; output to \`docs/sdlc/security/\`
+- [ ] **Fix loop**: If critical/high issues found → Dev fixes → re-audit. **Repeat until all issues resolved**; then sign-off to Deploy.
+`;
+
+const PRINCIPLE_ENGINEER_README = `# Principle Engineer
+
+**When:** After implementation (Dev) and QE testing. **Before** Deploy.
+
+**Role:** Audit logic, architecture alignment, design decisions, and technical quality. Ensure correctness and consistency with specs.
+
+**Fix loop:** If issues found → Dev fixes → re-audit. Repeat until all issues resolved; then sign-off to Deploy.
+
+## Detailed tasks
+
+- [ ] **Read implementation**: Code, architecture ADRs, Technical BA spec
+- [ ] **Logic audit**: Business logic correctness, edge cases, error handling, data flow
+- [ ] **Architecture audit**: Alignment with ADRs, patterns, scalability, maintainability
+- [ ] **Report**: Findings, recommendations; output to \`docs/sdlc/principle-engineer/\`
+- [ ] **Fix loop**: If critical logic/arch issues found → Dev fixes → re-audit. **Repeat until all issues resolved**; then sign-off to Deploy.
+`;
+
 const DEPLOY_README = `# Deploy
 
-After the pipeline completes (QE sign-off), deploy immediately with:
+After the pipeline completes (Security + Principle Engineer sign-off, after fix loop until no issues), deploy immediately with:
 
 - **Docker Compose** — local / staging: \`docker compose up -d\`
 - **Kubernetes** — production: \`kubectl apply -f k8s/\`

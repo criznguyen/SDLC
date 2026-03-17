@@ -5,11 +5,12 @@ Scaffold SDLC workflow docs and templates into your project. Works with **Cursor
 ## Flow
 
 ```
-User Request → PO → Business BA → Design (if app/web, PO+BA review loop) → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Deploy (Docker Compose + K8s)
+User Request → PO → Business BA → Design (if app/web) → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Security + PE audit → [fix loop until no issues] → Deploy (Docker Compose + K8s)
 ```
 
 - **Trigger:** When you send an **idea** or **feature request**, the agent should run the **full pipeline** (PO → … → Deploy) in sequence, one sub-agent/role per phase — not handle everything in one go or stop after one phase. See `docs/sdlc/ORCHESTRATION.md`.
 - **Design (optional):** For app/web projects, after Business BA → invoke **Pencil.dev** (MCP) to design; **PO + Business BA review** until approved; then Architect + Technical BA. UX drives technical decisions.
+- **Security + Principle Engineer:** After implementation and QE testing → security + logic audit; **fix loop** (Dev fixes → re-audit) until all issues resolved; sign-off before Deploy.
 - **Each role runs as a sub-agent** (see `docs/sdlc/agents/`).
 - **After completion** → deploy immediately with **Docker Compose** (local/staging) and **Kubernetes** (production) — `docs/sdlc/deploy/`.
 - **QE (docs)**: Test plan, test cases
@@ -77,9 +78,13 @@ docs/sdlc/
 │   ├── embedded/             # Senior Embedded 10+ yrs — firmware, IoT
 │   ├── data-ml/              # Senior Data/ML 10+ yrs
 │   └── platform/             # Senior Platform 10+ yrs — CI/CD, infra
+├── security/                 # Security team: audit security risk (after implementation)
+│   └── README.md
+├── principle-engineer/       # Principle engineer: audit logic, architecture (after implementation)
+│   └── README.md
 ├── agents/                   # Sub-agent specs (each role = sub-agent)
 │   └── README.md
-└── deploy/                   # After completion → Docker Compose + K8s
+└── deploy/                   # After Security + PE sign-off (fix loop until no issues) → Docker Compose + K8s
     ├── README.md
     ├── docker-compose.yml.template
     └── k8s/
