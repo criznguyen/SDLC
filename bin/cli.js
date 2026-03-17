@@ -163,6 +163,7 @@ async function generateFromInline(cwd) {
     join(base, "qe"),
     join(base, "qe", "qe-lead"),
     join(base, "qe", "senior-qe"),
+    join(base, "design"),
     join(base, "dev", "tech-lead"),
     join(base, "dev", "senior-developer"),
     join(base, "dev", "frontend"),
@@ -197,6 +198,7 @@ async function generateFromInline(cwd) {
     ["qe/README.md", QE_README],
     ["qe/qe-lead/README.md", QE_LEAD_README],
     ["qe/senior-qe/README.md", QE_SENIOR_README],
+    ["design/README.md", DESIGN_README],
     ["dev/tech-lead/README.md", DEV_TECH_LEAD_README],
     ["dev/senior-developer/README.md", DEV_SENIOR_README],
     ["dev/implementation-roles.template.md", DEV_IMPLEMENTATION_ROLES_TEMPLATE],
@@ -235,12 +237,13 @@ globs: docs/sdlc/**/*, **/*.md
 2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/{epic-slug}/ (one folder per epic)
 3. **Architect** — ADRs, diagrams → docs/sdlc/architecture/
 4. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
-5. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
-6. **Dev** — After docs phase → **run implementation immediately**. Tech Lead + implementation roles by project (FE, Backend, Mobile, Embedded, Data/ML, Platform) → docs/sdlc/dev/{role}/
-7. **QE (testing)** — QE Lead (15+ yrs automation: strategy, framework, review) + Senior QE (10+ yrs, automation) → docs/sdlc/qe/{epic-slug}/ (same folder per epic)
-8. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
+5. **Design (if app/web)** — Pencil.dev designs → docs/sdlc/design/{epic-slug}/; **PO + BA review** → loop until approved
+6. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
+7. **Dev** — After docs phase → **run implementation immediately**. Tech Lead + implementation roles → docs/sdlc/dev/{role}/
+8. **QE (testing)** — QE Lead (15+ yrs automation) + Senior QE (10+ yrs) → docs/sdlc/qe/{epic-slug}/
+9. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
 
-**Each role runs as a sub-agent.** See docs/sdlc/agents/
+**Each role runs as a sub-agent.** Design uses Pencil.dev MCP. See docs/sdlc/agents/
 Full workflow: docs/sdlc/SDLC-WORKFLOW.md
 `;
 
@@ -258,7 +261,7 @@ Sequential workflow; **each role runs as a sub-agent**. Each phase produces docs
 **When the user sends an idea, feature request, or new requirement:**
 1. **Trigger the pipeline** and run it **continuously through deployment** (Phase 1 → 2 → … → 7).
 2. **One role per phase.** For each phase, act **only** as that role (e.g. only PO in phase 1, only Business BA in phase 2). Produce that phase's outputs into the correct folder, then **continue to the next phase** without waiting for the user.
-3. **Run in order:** PO → Business BA → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Deploy. Do not stop after one phase unless the user explicitly asks to stop.
+3. **Run in order:** PO → Business BA → Architect → Technical BA → **Design (if app/web)** → QE (docs) → Dev → QE (testing) → Deploy. If Design: **PO + BA review** design; loop until approved before QE/Dev. Do not stop after one phase unless the user explicitly asks to stop.
 
 **Note:** In Cursor and similar tools there is a single agent per conversation. "Sub-agent" means **one role per phase** — the same agent must adopt exactly one role per phase and run phases in sequence (do not mix roles in one step). If the platform later supports spawning separate agents per phase, use that; otherwise this single agent simulates the pipeline by switching role each phase.
 
@@ -267,7 +270,7 @@ Sequential workflow; **each role runs as a sub-agent**. Each phase produces docs
 ## Flow Overview
 
 \`\`\`
-User Request → PO → Business BA → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Deploy (Docker Compose + K8s)
+User Request → PO → Business BA → Architect → Technical BA → Design (if app/web, PO+BA review loop) → QE (docs) → Dev → QE (testing) → Deploy (Docker Compose + K8s)
 \`\`\`
 
 **Determine current phase** before acting. If user sent an idea, assume Phase 0 and start from Phase 1.
@@ -301,7 +304,20 @@ User Request → PO → Business BA → Architect → Technical BA → QE (docs)
 
 **Role**: Translate business + architecture into implementable specs.
 **Deliverables**: API specs, DB schema, team breakdown, acceptance criteria per ticket.
-**Output**: \`docs/sdlc/ba/technical/\` — **Handoff to QE + Dev.**
+**Output**: \`docs/sdlc/ba/technical/\` — **Handoff to Design (if app/web) or QE + Dev.**
+
+## Phase 4b: Design (optional — app/web only)
+
+**When:** Project has UI (web, mobile app). Skip for API-only, library, CLI, data/ML, platform without UI.
+
+**Role**: Invoke **Pencil.dev** sub-agent (MCP) to create UI/UX designs from idea + PO + Business BA + Technical BA docs.
+**Output**: \`docs/sdlc/design/{epic-slug}/\` — .pen designs.
+
+**Review loop:**
+1. **PO review**: Design aligns with epic brief, user stories, acceptance criteria?
+2. **Business BA review**: Design matches functional requirements, process flows?
+3. **If not approved**: Capture feedback → redesign with Pencil.dev → repeat until PO and BA approve.
+4. **If approved** → **Handoff to QE + Dev.**
 
 ## Phase 5a: QE (Docs phase)
 
@@ -353,12 +369,13 @@ User Request → PO → Business BA → Architect → Technical BA → QE (docs)
 | 2 | Business BA | FRS, process flows |
 | 3 | Architect | ADRs, system diagrams |
 | 4 | Technical BA | API specs, tech breakdown |
+| 4b | Design (if app/web) | Pencil.dev designs; PO+BA review until approved |
 | 5a | QE (docs) | Test plan, test cases |
 | 5b | Dev | Code, unit tests (≥90%) |
 | 6 | QE (testing) | QE Lead (15+ yrs automation) + Senior QE (10+ yrs), automation, sign-off |
 | 7 | Deploy | Docker Compose + K8s |
 
-**Sub-agents**: Each role = one sub-agent (PO, Business BA, Architect, Technical BA, QE Lead, Senior QE, Tech Lead, Senior Dev). See docs/sdlc/agents/
+**Sub-agents**: Each role = one sub-agent. Design uses Pencil.dev MCP. See docs/sdlc/agents/
 See reference.md for templates.
 `;
 
@@ -366,8 +383,9 @@ const CURSOR_REFERENCE_MD = `# SDLC Workflow — Reference
 
 ## Folder structure: one per epic/feature (PO and Business BA)
 
-- **PO**: \`docs/sdlc/po/{epic-slug}/\` — one folder per epic (e.g. \`job-scheduler-event-bus\`). Files: epic-brief.md, user-stories.md. Do not put all epics in one file.
+- **PO**: \`docs/sdlc/po/{epic-slug}/\` — one folder per epic. Files: epic-brief.md, user-stories.md. Do not put all epics in one file.
 - **Business BA**: \`docs/sdlc/ba/business/{epic-slug}/\` — same slug as PO. Files: functional-requirements.md, process-flows.md. Do not merge all epics into one file.
+- **Design (if app/web)**: \`docs/sdlc/design/{epic-slug}/\` — same slug as PO/BA. Pencil.dev .pen designs; PO+BA review until approved.
 - **QE**: \`docs/sdlc/qe/{epic-slug}/\` — same slug as PO/BA. Files: test-plan.md, test-cases.md, automation artifacts. Do not put all epics in one file.
 
 ## PO: Epic Brief Template
@@ -382,6 +400,9 @@ FR-001: [Title] — Description, Trigger, Process Flow, Output, Constraints
 
 ## Technical BA: API Spec
 POST /api/v1/[resource] — Purpose, Request, Response, Contract
+
+## Design (if app/web)
+Pencil.dev MCP — create .pen designs from idea + PO + BA + Technical BA. Output: docs/sdlc/design/{epic-slug}/. PO + BA review until approved; loop if not aligned.
 
 ## QE: Test Case
 TC-001: [Scenario] — Precondition, Steps, Expected, Links to AC
@@ -412,12 +433,13 @@ When working on requirements, features, or handoffs, follow these phases:
 2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/{epic-slug}/ (one folder per epic)
 3. **Architect** — ADRs, diagrams → docs/sdlc/architecture/
 4. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
-5. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
-6. **Dev** — After docs phase → **run implementation immediately**. Tech Lead + Senior Dev → docs/sdlc/dev/{role}/
-7. **QE (testing)** — QE Lead (15+ yrs automation) + Senior QE (10+ yrs) → docs/sdlc/qe/{epic-slug}/ (same folder per epic)
-8. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
+5. **Design (if app/web)** — Pencil.dev designs → docs/sdlc/design/{epic-slug}/; **PO + BA review** until approved; then QE + Dev
+6. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
+7. **Dev** — After docs phase → **run implementation immediately**. Tech Lead + Senior Dev → docs/sdlc/dev/{role}/
+8. **QE (testing)** — QE Lead (15+ yrs automation) + Senior QE (10+ yrs) → docs/sdlc/qe/{epic-slug}/ (same folder per epic)
+9. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
 
-After the docs phase, the Dev team runs implementation immediately. See docs/sdlc/agents/
+Design: invoke Pencil.dev MCP; PO and BA review design; loop until approved. After the docs phase, the Dev team runs implementation immediately. See docs/sdlc/agents/
 `;
 
 const CLAUDE_SDLC_CONTENT = `## SDLC Workflow
@@ -428,12 +450,13 @@ const CLAUDE_SDLC_CONTENT = `## SDLC Workflow
 2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/{epic-slug}/ (one folder per epic)
 3. **Architect** — ADRs, diagrams → docs/sdlc/architecture/
 4. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
-5. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
-6. **Dev** — After docs phase → **run implementation immediately**. Tech Lead + Senior Dev → docs/sdlc/dev/{role}/
-7. **QE (testing)** — QE Lead (15+ yrs automation) + Senior QE (10+ yrs) → docs/sdlc/qe/{epic-slug}/ (same folder per epic)
-8. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
+5. **Design (if app/web)** — Pencil.dev designs → docs/sdlc/design/{epic-slug}/; **PO + BA review** until approved
+6. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
+7. **Dev** — After docs phase → **run implementation immediately**. Tech Lead + Senior Dev → docs/sdlc/dev/{role}/
+8. **QE (testing)** — QE Lead (15+ yrs automation) + Senior QE (10+ yrs) → docs/sdlc/qe/{epic-slug}/ (same folder per epic)
+9. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
 
-After the docs phase (Technical BA + QE docs), the Dev team runs implementation immediately. See docs/sdlc/agents/
+Design: Pencil.dev MCP; PO and BA review; loop until approved. After the docs phase, Dev runs implementation immediately. See docs/sdlc/agents/
 `;
 
 const SDLC_WORKFLOW_MD = `# SDLC Workflow (Multi-Role)
@@ -450,7 +473,7 @@ For Cursor, see .cursor/rules/sdlc-workflow.mdc
 ## Flow
 
 \`\`\`
-User Request → PO → Business BA → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Deploy
+User Request → PO → Business BA → Architect → Technical BA → Design (if app/web, PO+BA review loop) → QE (docs) → Dev → QE (testing) → Deploy
 \`\`\`
 
 ## Phase Checklist
@@ -462,6 +485,7 @@ User Request → PO → Business BA → Architect → Technical BA → QE (docs)
 | 2 | Business BA | FRS, process flows |
 | 3 | Architect | ADRs, system diagrams |
 | 4 | Technical BA | API specs, tech breakdown |
+| 4b | Design (if app/web) | Pencil.dev designs; PO+BA review until approved |
 | 5a | QE (docs) | Test plan, test cases |
 | 5b | Dev | Code, unit tests (≥90%) |
 | 6 | QE (testing) | QE Lead (15+ yrs automation) + Senior QE (10+ yrs), automation, sign-off |
@@ -486,6 +510,12 @@ User Request → PO → Business BA → Architect → Technical BA → QE (docs)
 ### Phase 4: Technical BA
 - API specs, DB schema, team breakdown
 - Output: \`docs/sdlc/ba/technical/\`
+
+### Phase 4b: Design (optional — app/web only)
+- Invoke **Pencil.dev** (MCP) to design based on idea + PO + BA + Technical BA docs
+- Output: \`docs/sdlc/design/{epic-slug}/\` — .pen designs
+- **PO + Business BA review**: Both check design vs epic/FRS; if not aligned → feedback → redesign loop until approved
+- When approved → handoff to QE + Dev
 
 ### Phase 5a: QE (Docs)
 - Test plan, test cases
@@ -529,6 +559,7 @@ There is **one agent** per conversation. It simulates the pipeline by **adopting
 - [ ] Phase 2 Business BA: \`docs/sdlc/ba/business/{epic-slug}/\` (one folder per epic)
 - [ ] Phase 3 Architect: \`docs/sdlc/architecture/\`
 - [ ] Phase 4 Technical BA: \`docs/sdlc/ba/technical/\`
+- [ ] Phase 4b Design (if app/web): Pencil.dev designs in \`docs/sdlc/design/{epic-slug}/\`; PO+BA review until approved
 - [ ] Phase 5a QE docs: \`docs/sdlc/qe/{epic-slug}/\` (one folder per epic)
 - [ ] Phase 5b Dev: code + unit tests, \`docs/sdlc/dev/\`
 - [ ] Phase 6 QE testing: automation, sign-off → \`docs/sdlc/qe/{epic-slug}/\`
@@ -544,8 +575,9 @@ Deploy: docs/sdlc/deploy/ (Docker Compose + K8s)
 
 ## Folder structure: one per epic/feature
 
-- **PO**: \`docs/sdlc/po/{epic-slug}/\` — one folder per epic (e.g. \`job-scheduler-event-bus\`). Files inside: epic-brief.md, user-stories.md, etc. Do not put all epics in one file.
-- **Business BA**: \`docs/sdlc/ba/business/{epic-slug}/\` — same slug as PO. Files: functional-requirements.md, process-flows.md, etc. Do not merge all epics into one file.
+- **PO**: \`docs/sdlc/po/{epic-slug}/\` — one folder per epic. Files: epic-brief.md, user-stories.md. Do not put all epics in one file.
+- **Business BA**: \`docs/sdlc/ba/business/{epic-slug}/\` — same slug as PO. Files: functional-requirements.md, process-flows.md. Do not merge all epics into one file.
+- **Design (if app/web)**: \`docs/sdlc/design/{epic-slug}/\` — Pencil.dev .pen designs; PO+BA review until approved.
 - **QE**: \`docs/sdlc/qe/{epic-slug}/\` — same slug as PO/BA. Files: test-plan.md, test-cases.md, automation. Do not put all epics in one file.
 `;
 
@@ -559,7 +591,8 @@ Every role in the SDLC runs as a **sub-agent**. Each phase is assigned to a corr
 | Business BA | business-ba | docs/sdlc/po/{epic-slug}/ | docs/sdlc/ba/business/{epic-slug}/ (one folder per epic) |
 | Architect | architect | docs/sdlc/ba/business/ | docs/sdlc/architecture/ |
 | Technical BA | technical-ba | docs/sdlc/architecture/ | docs/sdlc/ba/technical/ |
-| QE (docs) | qe-docs | docs/sdlc/ba/technical/ | docs/sdlc/qe/{epic-slug}/ (one folder per epic) |
+| Design (if app/web) | pencil-dev | docs/sdlc/po + ba + technical | docs/sdlc/design/{epic-slug}/; PO+BA review until approved |
+| QE (docs) | qe-docs | docs/sdlc/ba/technical/ (+ design if any) | docs/sdlc/qe/{epic-slug}/ (one folder per epic) |
 | Tech Lead | tech-lead | Technical spec | Review, merge, docs/sdlc/dev/tech-lead/ |
 | Senior Dev | senior-dev | Spec + test plan | After docs → run implementation immediately. Code, unit tests (≥90%) |
 | Senior Frontend | frontend | UI spec, API contract | Web UI, docs/sdlc/dev/frontend/ |
@@ -1008,6 +1041,29 @@ const QE_SENIOR_README = `# Senior QE (10+ years exp)
 - [ ] **Implement regression suite**: Add to CI; ensure stability (retries, waits)
 - [ ] **Report coverage**: Align with QE Lead's quality gates
 - [ ] **Output**: Automation code and docs in \`qe/{epic-slug}/\`
+`;
+
+const DESIGN_README = `# Design (optional — app/web projects only)
+
+**When:** After Technical BA, before QE and Dev. **Skip** for API-only, library, CLI, data/ML, platform projects without UI.
+
+**One folder per epic:** \`docs/sdlc/design/{epic-slug}/\` — same slug as PO/BA. Store .pen files and design notes there.
+
+## Flow
+
+1. **Design sub-agent (Pencil.dev)**: Create UI/UX designs based on idea + PO docs + Business BA FRS + Technical BA spec. Use Pencil MCP tools (\`batch_design\`, \`get_guidelines\`, \`get_style_guide\`, etc.) to produce .pen designs.
+2. **PO + Business BA review**: Both roles review the design against epic brief, user stories, functional requirements.
+3. **Loop until approved**: If design does not match idea/docs → return to step 1 with feedback; redesign. Repeat until PO and BA approve.
+4. **Handoff to QE + Dev**: Once approved → proceed to QE (docs) and Dev.
+
+## Detailed tasks
+
+- [ ] **Invoke Pencil.dev**: Call design sub-agent (Pencil MCP) with PO epic, BA FRS, Technical BA spec as context
+- [ ] **Create designs**: Screens, flows, components in .pen format; output to \`design/{epic-slug}/\`
+- [ ] **PO review**: Check design aligns with epic brief, user stories, acceptance criteria
+- [ ] **Business BA review**: Check design matches functional requirements, process flows
+- [ ] **If not approved**: Capture feedback; loop back to design step with specific changes
+- [ ] **If approved**: Handoff to QE and Dev; design in \`design/{epic-slug}/\`
 `;
 
 const DEV_TECH_LEAD_README = `# Tech Lead (15+ years exp)

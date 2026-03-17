@@ -5,10 +5,11 @@ Scaffold SDLC workflow docs and templates into your project. Works with **Cursor
 ## Flow
 
 ```
-User Request → PO → Business BA → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Deploy (Docker Compose + K8s)
+User Request → PO → Business BA → Architect → Technical BA → Design (if app/web, PO+BA review loop) → QE (docs) → Dev → QE (testing) → Deploy (Docker Compose + K8s)
 ```
 
 - **Trigger:** When you send an **idea** or **feature request**, the agent should run the **full pipeline** (PO → … → Deploy) in sequence, one sub-agent/role per phase — not handle everything in one go or stop after one phase. See `docs/sdlc/ORCHESTRATION.md`.
+- **Design (optional):** For app/web projects, after Technical BA → invoke **Pencil.dev** (MCP) to design; **PO + Business BA review** until approved; then QE + Dev.
 - **Each role runs as a sub-agent** (see `docs/sdlc/agents/`).
 - **After completion** → deploy immediately with **Docker Compose** (local/staging) and **Kubernetes** (production) — `docs/sdlc/deploy/`.
 - **QE (docs)**: Test plan, test cases
@@ -56,6 +57,8 @@ docs/sdlc/
 │       └── README.md
 ├── architecture/             # Architect
 │   ├── adr.template.md
+│   └── README.md
+├── design/                   # Design (optional, app/web): Pencil.dev .pen; PO+BA review until approved
 │   └── README.md
 ├── qe/                       # QE (one folder per epic: qe/{epic-slug}/)
 │   ├── test-case.template.md
