@@ -703,16 +703,16 @@ const PO_README = `# PO (Product Owner)
 - Folder name = epic/feature slug (e.g. \`job-scheduler-event-bus\`, \`user-auth\`).
 - Inside that folder: \`epic-brief.md\`, \`user-stories.md\`, \`prd.md\` (or similar) for that epic only.
 
-Example:
-\`\`\`
-docs/sdlc/po/
-  job-scheduler-event-bus/
-    epic-brief.md
-    user-stories.md
-  user-auth/
-    epic-brief.md
-    user-stories.md
-\`\`\`
+## Detailed tasks
+
+- [ ] **Clarify vision**: Capture business problem, goals, success metrics
+- [ ] **Define scope**: Boundaries, in/out of scope, MVP vs later
+- [ ] **Write epic brief**: Problem, success metrics, high-level approach, project type
+- [ ] **Break into user stories**: As a [role], I want [goal] so that [benefit]; acceptance criteria per story
+- [ ] **Prioritize**: Must / Should / Could have; order by value and risk
+- [ ] **Identify dependencies**: External teams, systems, blockers
+- [ ] **Call out risks**: Technical, schedule, compliance
+- [ ] **Handoff to Business BA**: Deliverables in \`po/{epic-slug}/\`
 
 Use epic-brief.template.md as starting point for each epic.
 `;
@@ -755,7 +755,17 @@ docs/sdlc/ba/business/
     functional-requirements.md
 \`\`\`
 
-Use functional-requirement.template.md for FRS items. One file per epic, or one folder per epic with multiple files.
+## Detailed tasks
+
+- [ ] **Read PO outputs**: Epic brief, user stories, acceptance criteria
+- [ ] **Define functional requirements**: For each requirement: type, description, trigger, process flow, output, constraints (use FR-001, FR-002...)
+- [ ] **Document process flows**: Step-by-step business flows (e.g. BPMN, flowcharts, numbered lists)
+- [ ] **Write use cases**: Actor, goal, preconditions, main/alternate flows, postconditions
+- [ ] **Maintain glossary**: Business terms, definitions, acronyms
+- [ ] **Map to user stories**: Trace FRs to user stories / AC
+- [ ] **Handoff to Architect**: Deliverables in \`ba/business/{epic-slug}/\`
+
+Use functional-requirement.template.md for FRS items.
 `;
 
 const TECH_API_TEMPLATE = `# Interface / contract spec
@@ -856,6 +866,15 @@ const BA_TECH_README = `# Technical BA
 
 API/interface specs, DB schema, team breakdown.
 Templates support: HTTP API, library/SDK, CLI, and all project types (see api-spec and team-breakdown).
+
+## Detailed tasks
+
+- [ ] **Read Architect outputs**: ADRs, context/container diagrams, tech stack
+- [ ] **API/interface spec**: For each endpoint/class/command: purpose, request/response, contract (OpenAPI, TS types, CLI help)
+- [ ] **DB schema**: Tables, columns, indexes, constraints; migrations approach
+- [ ] **Team breakdown**: Map scope to teams (Backend, Frontend, Mobile, etc.) per project type; dependencies
+- [ ] **Trace to FRs**: Map technical specs to functional requirements
+- [ ] **Handoff to QE + Dev**: API spec, team breakdown in \`ba/technical/\`
 `;
 
 const ARCH_ADR_TEMPLATE = `# ADR-001: [Decision Title]
@@ -877,10 +896,20 @@ const ARCH_ADR_TEMPLATE = `# ADR-001: [Decision Title]
 - Negative: ...
 `;
 
-const ARCH_README = `# Architecture
+const ARCH_README = `# Architect
 
 ADRs, system diagrams, tech stack decisions.
 Use adr.template.md for new ADRs.
+
+## Detailed tasks
+
+- [ ] **Read Business BA outputs**: Functional requirements, process flows, use cases
+- [ ] **Context diagram**: System boundary, external actors, integrations
+- [ ] **Container diagram**: Main components/services and their responsibilities
+- [ ] **Tech stack decisions**: Languages, frameworks, databases; document in ADRs
+- [ ] **ADR per decision**: Context, decision, consequences (scope: backend, frontend, mobile, etc.)
+- [ ] **Non-functional alignment**: Performance, security, scalability, compliance
+- [ ] **Handoff to Technical BA**: Architecture docs, ADRs in \`architecture/\`
 `;
 
 const QE_TC_TEMPLATE = `## TC-001: [Scenario]
@@ -908,6 +937,19 @@ const QE_README = `# QE (Quality Engineering)
 
 - Use the same epic/feature slug as PO and Business BA: \`docs/sdlc/qe/{epic-slug}/\`
 - Inside that folder: \`test-plan.md\`, \`test-cases.md\` (Phase 5a), and for Phase 6: automation notes, framework decision for that epic, etc.
+
+## Detailed tasks (Docs phase — Phase 5a)
+
+- [ ] **Read Technical BA spec**: API, team breakdown, FRs
+- [ ] **Test plan**: Scope (unit, integration, E2E), coverage goals, risks
+- [ ] **Test cases**: TC-001, TC-002... — precondition, steps, expected, links to AC
+- [ ] **Handoff to Dev**: Test plan + test cases in \`qe/{epic-slug}/\` → Dev runs implementation
+
+## Detailed tasks (Testing phase — Phase 6)
+
+- [ ] **QE Lead**: Test strategy, framework, review test code
+- [ ] **Senior QE**: Write automation tests per test plan
+- [ ] **Sign-off**: Regression, coverage, release readiness in \`qe/{epic-slug}/\`
 
 Example:
 \`\`\`
@@ -940,6 +982,15 @@ const QE_LEAD_README = `# QE Lead (15+ years exp in test automation)
 - **Quality gates**: Define and enforce gates (e.g. coverage thresholds, required suites before merge, regression criteria).
 
 **Output**: Test framework ADR, automation strategy doc, review checklist, and per-epic guidance in \`docs/sdlc/qe/{epic-slug}/\`.
+
+## Detailed tasks
+
+- [ ] **Test automation strategy**: Document scope (unit/integration/E2E/API/performance), pyramid, alignment with tech stack
+- [ ] **Framework ADR**: Choose and justify frameworks (Playwright, Cypress, Jest, etc.); document in ADR
+- [ ] **Automation architecture**: Design folder structure, layers, fixtures, reporting, retries, env handling
+- [ ] **Review checklist**: Coverage, maintainability, naming, alignment with framework
+- [ ] **Quality gates**: Define thresholds (coverage, required suites before merge), regression criteria
+- [ ] **Per-epic guidance**: Output to \`qe/{epic-slug}/\` per epic
 `;
 
 const QE_SENIOR_README = `# Senior QE (10+ years exp)
@@ -949,7 +1000,14 @@ const QE_SENIOR_README = `# Senior QE (10+ years exp)
 - Implement E2E, integration, regression tests
 - Follow QE Lead's framework decisions
 
-**Docs**: Automation test design, framework usage.
+## Detailed tasks
+
+- [ ] **Read test plan**: Scope, coverage goals, test case IDs
+- [ ] **Implement E2E tests**: UI flows, critical paths per QE Lead's framework
+- [ ] **Implement API/integration tests**: Request/response, contracts
+- [ ] **Implement regression suite**: Add to CI; ensure stability (retries, waits)
+- [ ] **Report coverage**: Align with QE Lead's quality gates
+- [ ] **Output**: Automation code and docs in \`qe/{epic-slug}/\`
 `;
 
 const DEV_TECH_LEAD_README = `# Tech Lead (15+ years exp)
@@ -959,7 +1017,15 @@ const DEV_TECH_LEAD_README = `# Tech Lead (15+ years exp)
 - Review and merge code
 - Ensure architecture alignment
 
-**Docs**: ADRs, tech decisions, review checklist.
+## Detailed tasks
+
+- [ ] **Read architecture and Technical BA spec**: ADRs, API spec, team breakdown
+- [ ] **Tech stack decision**: Languages, frameworks, libraries; document in ADR
+- [ ] **Project setup**: Repo structure, tooling, lint, format, CI baseline
+- [ ] **Code review**: Architecture alignment, patterns, test coverage, security
+- [ ] **Merge approval**: Enforce quality gates before merge
+- [ ] **Tech guidance**: Resolve technical disputes; mentor team
+- [ ] **Output**: ADRs, review checklist in \`dev/tech-lead/\`
 `;
 
 const DEV_SENIOR_README = `# Senior Developer (10+ years exp)
@@ -969,7 +1035,13 @@ const DEV_SENIOR_README = `# Senior Developer (10+ years exp)
 - Write code with Unit Test coverage **≥ 90%**
 - Follow Tech Lead's tech decisions
 
-**Docs**: Implementation notes, API usage.
+## Detailed tasks
+
+- [ ] **Read Technical BA spec**: API, schema, team breakdown
+- [ ] **Implement feature**: Code per spec; follow Tech Lead stack
+- [ ] **Unit tests**: Coverage **≥ 90%**; edge cases, error paths
+- [ ] **PR**: Lint, tests passing; request Tech Lead review
+- [ ] **Output**: Code + implementation notes in \`dev/senior-developer/\`
 `;
 
 const DEV_IMPLEMENTATION_ROLES_TEMPLATE = `# Implementation roles by project type
@@ -1009,7 +1081,14 @@ const DEV_FRONTEND_README = `# Senior Frontend (10+ years exp) — Web UI
 - Unit Test coverage **≥ 90%**
 - Follow Tech Lead's stack (e.g. React, Vue, Angular)
 
-**Docs**: Component docs, integration notes.
+## Detailed tasks
+
+- [ ] **Read Technical BA spec**: API contract, design (if any)
+- [ ] **Implement components/screens**: Per spec; responsive, accessible
+- [ ] **API integration**: Fetch, state, error handling
+- [ ] **Unit tests**: Components, hooks, utils — coverage **≥ 90%**
+- [ ] **PR**: Lint, tests; Tech Lead review
+- [ ] **Output**: Code + component/integration docs in \`dev/frontend/\`
 `;
 
 const DEV_BACKEND_README = `# Senior Backend (10+ years exp) — API, services
@@ -1019,7 +1098,14 @@ const DEV_BACKEND_README = `# Senior Backend (10+ years exp) — API, services
 - Unit Test coverage **≥ 90%**
 - Follow Tech Lead's stack
 
-**Docs**: API implementation notes, DB changes.
+## Detailed tasks
+
+- [ ] **Read Technical BA spec**: API spec, DB schema
+- [ ] **Implement endpoints**: Per spec; validation, auth, error responses
+- [ ] **Implement DB layer**: Migrations, queries, transactions
+- [ ] **Unit tests**: Services, controllers, DB — coverage **≥ 90%**
+- [ ] **PR**: Lint, tests; Tech Lead review
+- [ ] **Output**: Code + API/DB implementation notes in \`dev/backend/\`
 `;
 
 const DEV_MOBILE_README = `# Senior Mobile (10+ years exp) — iOS / Android / cross-platform
@@ -1029,7 +1115,14 @@ const DEV_MOBILE_README = `# Senior Mobile (10+ years exp) — iOS / Android / c
 - Unit Test coverage **≥ 90%**
 - Follow Tech Lead's stack (e.g. React Native, Flutter, native)
 
-**Docs**: Screen/module docs, integration notes.
+## Detailed tasks
+
+- [ ] **Read Technical BA spec**: API contract, screen flows
+- [ ] **Implement screens/modules**: Per spec; platform parity (iOS/Android)
+- [ ] **API integration**: Auth, state, offline (if required)
+- [ ] **Unit tests**: Components, logic — coverage **≥ 90%**
+- [ ] **PR**: Lint, tests; Tech Lead review
+- [ ] **Output**: Code + screen/module docs in \`dev/mobile/\`
 `;
 
 const DEV_EMBEDDED_README = `# Senior Embedded (10+ years exp) — firmware, IoT
@@ -1039,7 +1132,13 @@ const DEV_EMBEDDED_README = `# Senior Embedded (10+ years exp) — firmware, IoT
 - Tests as appropriate for target (unit, HW-in-loop)
 - Follow Tech Lead's stack and safety constraints
 
-**Docs**: Module design, interface specs.
+## Detailed tasks
+
+- [ ] **Read Technical BA spec**: Interfaces, timing, constraints
+- [ ] **Implement modules/drivers**: Per spec; safety-critical compliance
+- [ ] **Tests**: Unit, HW-in-loop as feasible
+- [ ] **PR**: Lint, tests; Tech Lead review
+- [ ] **Output**: Code + module/interface docs in \`dev/embedded/\`
 `;
 
 const DEV_DATA_ML_README = `# Senior Data/ML (10+ years exp)
@@ -1049,7 +1148,14 @@ const DEV_DATA_ML_README = `# Senior Data/ML (10+ years exp)
 - Tests and validation for data and model quality
 - Follow Tech Lead's stack (e.g. Python, Spark, ML frameworks)
 
-**Docs**: Pipeline design, model cards.
+## Detailed tasks
+
+- [ ] **Read Technical BA spec**: Data spec, API contract
+- [ ] **Implement ETL/pipelines**: Ingestion, transforms, storage
+- [ ] **Implement models**: Training, evaluation; model cards
+- [ ] **Tests**: Data validation, model quality metrics
+- [ ] **PR**: Lint, tests; Tech Lead review
+- [ ] **Output**: Code + pipeline/model docs in \`dev/data-ml/\`
 `;
 
 const DEV_PLATFORM_README = `# Senior Platform (10+ years exp) — infra, CI/CD
@@ -1058,7 +1164,14 @@ const DEV_PLATFORM_README = `# Senior Platform (10+ years exp) — infra, CI/CD
 - Implement CI/CD, infra as code, observability per spec
 - Follow Tech Lead's stack and security requirements
 
-**Docs**: Runbooks, pipeline and infra docs.
+## Detailed tasks
+
+- [ ] **Read Technical BA spec**: Infra, deploy, observability requirements
+- [ ] **Implement CI/CD**: Build, test, deploy pipelines
+- [ ] **Infra as code**: Terraform/Pulumi/CloudFormation per spec
+- [ ] **Observability**: Logging, metrics, traces, alerts
+- [ ] **PR**: Lint; Tech Lead review
+- [ ] **Output**: Pipelines, infra code, runbooks in \`dev/platform/\`
 `;
 
 main();
