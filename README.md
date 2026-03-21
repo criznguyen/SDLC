@@ -5,14 +5,15 @@ Scaffold SDLC workflow docs and templates into your project. Works with **Cursor
 ## Flow
 
 ```
-User Request → PO → Business BA → Design (if app/web) → Architect → Technical BA → QE (docs) → Dev → QE (testing) → Security + PE audit → [fix loop until no issues] → Deploy (Docker Compose + K8s)
+User Request → PO → Business BA → Design (if app/web) → Architect → Technical BA → QE (docs) → Dev → QE (testing + UAT) → Security + PE audit → [fix loop until no issues] → Deploy → Maintenance
 ```
 
 - **Trigger:** When you send an **idea** or **feature request**, the agent should run the **full pipeline** (PO → … → Deploy) in sequence, one sub-agent/role per phase — not handle everything in one go or stop after one phase. See `docs/sdlc/ORCHESTRATION.md`.
-- **Design (optional):** For app/web projects, after Business BA → invoke **Pencil.dev** (MCP) to design; **PO + Business BA review** until approved; then Architect + Technical BA. UX drives technical decisions.
+- **Design (optional):** For app/web projects, after Business BA → create **design specs** (Markdown) + optional **HTML wireframes**; **PO + Business BA review** until approved; then Architect + Technical BA. UX drives technical decisions.
 - **Security + Principle Engineer:** After implementation and QE testing → security + logic audit; **fix loop** (Dev fixes → re-audit) until all issues resolved; sign-off before Deploy.
 - **Each role runs as a sub-agent** (see `docs/sdlc/agents/`).
 - **After completion** → deploy immediately with **Docker Compose** (local/staging) and **Kubernetes** (production) — `docs/sdlc/deploy/`.
+- **Maintenance:** After Deploy → monitoring, bug fixes, patches, dependency updates, performance tuning — `docs/sdlc/maintenance/`.
 - **QE (docs)**: Test plan, test cases
 - **Dev**: After docs phase → **run implementation immediately**. Tech Lead (review, merge) + Senior Dev (implement, Unit Test ≥90%)
 - **QE (testing)**: QE Lead (15+ yrs automation: strategy, framework, review) + Senior QE (10+ yrs, write automation tests)
@@ -56,7 +57,7 @@ docs/sdlc/
 │       ├── api-spec.template.md
 │       ├── team-breakdown.template.md
 │       └── README.md
-├── design/                   # Design (optional, app/web): after BA, before Architect; Pencil.dev .pen; PO+BA review until approved
+├── design/                   # Design (optional, app/web): after BA, before Architect; design specs + wireframes; PO+BA review until approved
 │   └── README.md
 ├── architecture/             # Architect
 │   ├── adr.template.md
@@ -84,13 +85,15 @@ docs/sdlc/
 │   └── README.md
 ├── agents/                   # Sub-agent specs (each role = sub-agent)
 │   └── README.md
-└── deploy/                   # After Security + PE sign-off (fix loop until no issues) → Docker Compose + K8s
-    ├── README.md
-    ├── docker-compose.yml.template
-    └── k8s/
-        ├── deployment.yaml.template
-        ├── service.yaml.template
-        └── ingress.yaml.template
+├── deploy/                   # After Security + PE sign-off (fix loop until no issues) → Docker Compose + K8s
+│   ├── README.md
+│   ├── docker-compose.yml.template
+│   └── k8s/
+│       ├── deployment.yaml.template
+│       ├── service.yaml.template
+│       └── ingress.yaml.template
+└── maintenance/              # After Deploy → monitoring, bug fixes, patches, runbooks
+    └── README.md
 
 .cursor/rules/
 └── sdlc-workflow.mdc         # Cursor rule
