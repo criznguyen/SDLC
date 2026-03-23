@@ -1,18 +1,27 @@
 ---
-description: SDLC multi-role workflow (PO → BA → Architect → Tech BA → QE docs → Dev → QE testing)
+description: SDLC multi-role workflow; on idea/request trigger pipeline through deployment (sub-agent per phase)
 alwaysApply: false
 globs: docs/sdlc/**/*, **/*.md
 ---
 
 # SDLC Workflow
 
-1. **PO** — PRD, user stories → docs/sdlc/po/
-2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/
-3. **Architect** — ADRs, diagrams → docs/sdlc/architecture/
-4. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
-5. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/
-6. **Dev** — Tech Lead (review, merge) + Senior Dev (implement, ≥90% unit test) → docs/sdlc/dev/{role}/
-7. **QE (testing)** — Automation + manual tests, sign-off
-8. **Deploy** — Release, monitor
+**On idea/feature request:** Trigger full pipeline (PO → … → Deploy). One role per phase; run phases in sequence. (Single agent = simulate by switching role each phase.) See docs/sdlc/SDLC-WORKFLOW.md and docs/sdlc/agents/.
 
+**Memory requirement:** Before executing any new action, recall relevant memories (project context, user preferences, past decisions) to ensure continuity and avoid repeating mistakes.
+
+1. **PO** — PRD, user stories → docs/sdlc/po/{epic-slug}/ (one folder per epic)
+2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/{epic-slug}/ (one folder per epic)
+3. **Design (if app/web)** — Design specs + wireframes → docs/sdlc/design/{epic-slug}/; **PO + BA review** → loop until approved
+4. **Architect** — ADRs, diagrams → docs/sdlc/architecture/
+5. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
+6. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
+7. **Dev** — After docs phase → **run implementation immediately**. Tech Lead (highest model: planning, logic, review) + implementation roles (cost-efficient model: code execution) → docs/sdlc/dev/{role}/
+8. **QE (testing + UAT)** — QE Lead + Senior QE + UAT; **bug-fix loop** (bugs → Dev fix → QE retest) until 0 bugs → docs/sdlc/qe/{epic-slug}/
+9. **Security** — Audit security risk → docs/sdlc/security/
+10. **Principle Engineer** — Audit logic, architecture → docs/sdlc/principle-engineer/
+11. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/ (after Security + PE sign-off; fix → retest → re-audit loop until 0 issues)
+12. **Maintenance** — Monitoring, bug fixes, patches, dependency updates → docs/sdlc/maintenance/
+
+**Each role runs as a sub-agent.** Design before Architect (UX drives tech). See docs/sdlc/agents/
 Full workflow: docs/sdlc/SDLC-WORKFLOW.md

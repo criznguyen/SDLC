@@ -1,0 +1,15 @@
+# Copy to docker-compose.yml and adjust image, env, ports.
+# Single service (API, CLI, app) or add more services (api, worker, frontend, db) as needed.
+services:
+  app:
+    image: your-registry/your-app:latest
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+  # Optional: add worker, frontend, db, etc.
+  # worker:
+  #   image: your-registry/worker:latest
+  #   depends_on: [app]

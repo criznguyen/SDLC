@@ -21,36 +21,50 @@ async function main() {
     process.exit(0);
   }
 
-  if (command !== "init") {
-    console.log("Usage: npx sdlc-workflow <command>");
-    console.log("");
-    console.log("Commands:");
-    console.log("  init     Scaffold SDLC docs and templates (Cursor, Claude, Antigravity, Codex)");
-    console.log("  version  Print current version");
-    console.log("");
-    console.log("Examples:");
-    console.log("  npx sdlc-workflow init");
-    console.log("  npx sdlc-workflow version");
-    process.exit(1);
+  if (command === "init") {
+    console.log("Scaffolding SDLC workflow (project)...\n");
+    try {
+      await scaffold(cwd);
+      await installClaudeSkill(cwd);
+      await installAgentsMd(cwd);
+      console.log("\nDone.");
+      console.log("  - Project: docs/sdlc/, .cursor/rules/, .claude/, AGENTS.md, .agents/skills/");
+      console.log("\nRun `npx sdlc-workflow install` to set up global skills (Cursor, Codex).");
+    } catch (err) {
+      console.error("Error:", err.message);
+      process.exit(1);
+    }
+    return;
   }
 
-  console.log("Scaffolding SDLC workflow...\n");
-
-  try {
-    const home = homedir();
-    await scaffold(cwd);
-    await installCursorSkill(home);
-    await installClaudeSkill(cwd);
-    await installAgentsMd(cwd);
-    await installCodexSkill(home);
-    console.log("\nDone.");
-    console.log("  - Project: docs/sdlc/, .cursor/rules/, .claude/, AGENTS.md, .agents/skills/");
-    console.log("  - Cursor: ~/.cursor/skills/sdlc-workflow/");
-    console.log("  - Codex: ~/.codex/AGENTS.md, ~/.agents/skills/sdlc-workflow/");
-  } catch (err) {
-    console.error("Error:", err.message);
-    process.exit(1);
+  if (command === "install") {
+    console.log("Installing SDLC workflow (global)...\n");
+    try {
+      const home = homedir();
+      await installCursorSkill(home);
+      await installCodexSkill(home);
+      console.log("\nDone.");
+      console.log("  - Cursor: ~/.cursor/skills/sdlc-workflow/");
+      console.log("  - Codex: ~/.codex/AGENTS.md, ~/.agents/skills/sdlc-workflow/");
+    } catch (err) {
+      console.error("Error:", err.message);
+      process.exit(1);
+    }
+    return;
   }
+
+  console.log("Usage: npx sdlc-workflow <command>");
+  console.log("");
+  console.log("Commands:");
+  console.log("  init     Scaffold SDLC docs and templates into current project");
+  console.log("  install  Install global skills (Cursor, Codex) to home directory");
+  console.log("  version  Print current version");
+  console.log("");
+  console.log("Examples:");
+  console.log("  npx sdlc-workflow init      # project-level setup");
+  console.log("  npx sdlc-workflow install   # global setup (~/.cursor, ~/.codex, ~/.agents)");
+  console.log("  npx sdlc-workflow version");
+  process.exit(1);
 }
 
 async function installCursorSkill(home) {
@@ -240,17 +254,19 @@ globs: docs/sdlc/**/*, **/*.md
 
 **On idea/feature request:** Trigger full pipeline (PO → … → Deploy). One role per phase; run phases in sequence. (Single agent = simulate by switching role each phase.) See docs/sdlc/SDLC-WORKFLOW.md and docs/sdlc/agents/.
 
+**Memory requirement:** Before executing any new action, recall relevant memories (project context, user preferences, past decisions) to ensure continuity and avoid repeating mistakes.
+
 1. **PO** — PRD, user stories → docs/sdlc/po/{epic-slug}/ (one folder per epic)
 2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/{epic-slug}/ (one folder per epic)
 3. **Design (if app/web)** — Design specs + wireframes → docs/sdlc/design/{epic-slug}/; **PO + BA review** → loop until approved
 4. **Architect** — ADRs, diagrams → docs/sdlc/architecture/
 5. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
 6. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
-7. **Dev** — After docs phase → **run implementation immediately**. Tech Lead + implementation roles → docs/sdlc/dev/{role}/
-8. **QE (testing + UAT)** — QE Lead (15+ yrs automation) + Senior QE (10+ yrs) + UAT → docs/sdlc/qe/{epic-slug}/
+7. **Dev** — After docs phase → **run implementation immediately**. Tech Lead (highest model: planning, logic, review) + implementation roles (cost-efficient model: code execution) → docs/sdlc/dev/{role}/
+8. **QE (testing + UAT)** — QE Lead (highest model: strategy, review) + Senior QE (cost-efficient model: test execution) + UAT; **bug-fix loop** (bugs → Dev fix → QE retest) until 0 bugs → docs/sdlc/qe/{epic-slug}/
 9. **Security** — Audit security risk → docs/sdlc/security/
 10. **Principle Engineer** — Audit logic, architecture → docs/sdlc/principle-engineer/
-11. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/ (after Security + PE sign-off; fix loop until no issues)
+11. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/ (after Security + PE sign-off; fix → retest → re-audit loop until 0 issues)
 12. **Maintenance** — Monitoring, bug fixes, patches, dependency updates → docs/sdlc/maintenance/
 
 **Each role runs as a sub-agent.** Design before Architect (UX drives tech). See docs/sdlc/agents/
@@ -269,9 +285,10 @@ Sequential workflow; **each role runs as a sub-agent**. Each phase produces docs
 ## Trigger and orchestration (mandatory)
 
 **When the user sends an idea, feature request, or new requirement:**
-1. **Trigger the pipeline** and run it **continuously through deployment** (Phase 1 → 2 → … → 7).
-2. **One role per phase.** For each phase, act **only** as that role (e.g. only PO in phase 1, only Business BA in phase 2). Produce that phase's outputs into the correct folder, then **continue to the next phase** without waiting for the user.
-3. **Run in order:** PO → Business BA → **Design (if app/web, PO+BA review loop)** → Architect → Technical BA → QE (docs) → Dev → QE (testing + UAT) → **Security + Principle Engineer audit → fix loop until all issues resolved** → Deploy → Maintenance. Do not stop after one phase unless the user explicitly asks to stop.
+1. **Recall memory** — Before executing any new action, recall relevant memories (project context, user preferences, past decisions) to ensure continuity and avoid repeating mistakes.
+2. **Trigger the pipeline** and run it **continuously through deployment** (Phase 1 → 2 → … → 7).
+3. **One role per phase.** For each phase, act **only** as that role (e.g. only PO in phase 1, only Business BA in phase 2). Produce that phase's outputs into the correct folder, then **continue to the next phase** without waiting for the user.
+3. **Run in order:** PO → Business BA → **Design (if app/web, PO+BA review loop)** → Architect → Technical BA → QE (docs) → Dev → QE (testing + UAT) → **QE bug-fix loop until 0 bugs → Security + Principle Engineer audit → fix → retest → re-audit loop until 0 issues** → Deploy → Maintenance. Do not stop after one phase unless the user explicitly asks to stop.
 
 **Note:** In Cursor and similar tools there is a single agent per conversation. "Sub-agent" means **one role per phase** — the same agent must adopt exactly one role per phase and run phases in sequence (do not mix roles in one step). If the platform later supports spawning separate agents per phase, use that; otherwise this single agent simulates the pipeline by switching role each phase.
 
@@ -280,7 +297,7 @@ Sequential workflow; **each role runs as a sub-agent**. Each phase produces docs
 ## Flow Overview
 
 \`\`\`
-User Request → PO → Business BA → Design (if app/web) → Architect → Technical BA → QE (docs) → Dev → QE (testing + UAT) → Security + PE audit → [fix loop until no issues] → Deploy → Maintenance
+User Request → PO → Business BA → Design (if app/web) → Architect → Technical BA → QE (docs) → Dev → QE (testing + UAT) → [bug-fix loop until 0 bugs] → Security + PE audit → [fix → retest → re-audit loop until 0 issues] → Deploy → Maintenance
 \`\`\`
 
 **Determine current phase** before acting. If user sent an idea, assume Phase 0 and start from Phase 1.
@@ -308,7 +325,7 @@ User Request → PO → Business BA → Design (if app/web) → Architect → Te
 
 **When:** Project has UI (web, mobile app). Skip for API-only, library, CLI, data/ML, platform without UI.
 
-**Role**: Create UI/UX design specs (Markdown) and optional HTML wireframes from idea + PO + Business BA docs. Design **before** Architect so UX drives technical decisions.
+**Role**: Create UI/UX design specs (Markdown) and optional HTML wireframes from idea + PO + Business BA docs. Design **before** Architect so UX drives technical decisions. **Anti AI pattern**: designs must NOT look AI-generated.
 **Output**: \`docs/sdlc/design/{epic-slug}/\` — design-spec.md + optional wireframes/.
 
 **Review loop:**
@@ -321,6 +338,7 @@ User Request → PO → Business BA → Design (if app/web) → Architect → Te
 
 **Role**: Design system architecture and technology choices.
 **Deliverables**: System context, container diagram, ADRs, tech stack, cross-cutting concerns.
+**Engineering principles**: SOLID, DRY, KISS, SoC, High Availability, CQRS, Zero Trust, EDA, Statelessness, Disposability, Backing Services, Config, Codebase, Database Sharding/Partitioning, Logging & Tracing, Monitoring & Alerting.
 **Input**: Business BA + Design (if app/web) — design informs architecture.
 **Output**: \`docs/sdlc/architecture/\` — **Handoff to Technical BA.**
 
@@ -342,8 +360,8 @@ User Request → PO → Business BA → Design (if app/web) → Architect → Te
 **Trigger**: After docs are done (Technical BA + QE docs). **Dev runs implementation immediately.**
 
 **Roles** (vary by project — use only what applies; see \`docs/sdlc/dev/implementation-roles.template.md\`). All implementation roles are **Senior (10+ yrs)**:
-- **Tech Lead (15+ yrs)**: Tech stack, review & merge. Docs: \`docs/sdlc/dev/tech-lead/\`
-- **Senior Developer (10+ yrs)**: Implement per spec (generic). Docs: \`docs/sdlc/dev/senior-developer/\`
+- **Tech Lead (15+ yrs)** — **highest model** (e.g. Opus): Planning, logic analysis, architecture decisions, tech stack, code review & merge. Docs: \`docs/sdlc/dev/tech-lead/\`
+- **Senior Developer (10+ yrs)** — **cost-efficient model** (e.g. Haiku): Implement per Tech Lead's spec. Docs: \`docs/sdlc/dev/senior-developer/\`
 - **Senior Frontend (10+ yrs)**: Web UI. Docs: \`docs/sdlc/dev/frontend/\`
 - **Senior Backend (10+ yrs)**: API, services. Docs: \`docs/sdlc/dev/backend/\`
 - **Senior Mobile (10+ yrs)**: iOS/Android/cross-platform. Docs: \`docs/sdlc/dev/mobile/\`
@@ -351,29 +369,32 @@ User Request → PO → Business BA → Design (if app/web) → Architect → Te
 - **Senior Data/ML (10+ yrs)**: ETL, models. Docs: \`docs/sdlc/dev/data-ml/\`
 - **Senior Platform (10+ yrs)**: Infra, CI/CD. Docs: \`docs/sdlc/dev/platform/\`
 
-**Requirements**: Unit Test coverage **≥ 90%**.
+**Model optimization**: Tech Lead uses the **highest-tier model** (e.g. Claude Opus) for planning, architecture decisions, logic analysis, and code review. Implementation roles use a **cost-efficient model** (e.g. Claude Haiku) to execute code from Tech Lead's specs. This maximizes quality on critical thinking while reducing cost on execution.
+
+**Requirements**: Unit Test coverage **100%** (TDD/BDD); Clean Code, SOLID, DRY, KISS, SoC, POLS.
 
 **Output**: Code + unit tests. **Handoff to QE (testing + UAT).**
 
-## Phase 6: QE (Testing phase — automation)
+## Phase 6: QE (Testing phase — automation + UAT) → bug-fix loop
 
 **Trigger**: After Dev completes unit tests.
-**Role**: Write and run **automation tests**, sign-off.
+**Role**: Write and run **automation tests** + **UAT**, sign-off.
 
 **Roles**:
-- **QE Lead (15+ yrs automation)**: Test strategy, framework choice, automation architecture, review test code. Output per epic: \`docs/sdlc/qe/{epic-slug}/\`
-- **Senior QE (10+ yrs)**: Write automation tests per QE Lead's strategy. Output per epic: \`docs/sdlc/qe/{epic-slug}/\` (e.g. automation/ or test files there)
+- **QE Lead (15+ yrs automation)** — **highest model** (e.g. Opus): Test strategy, framework choice, automation architecture, review test code. Output per epic: \`docs/sdlc/qe/{epic-slug}/\`
+- **Senior QE (10+ yrs)** — **cost-efficient model** (e.g. Haiku): Write automation tests per QE Lead's strategy. Output per epic: \`docs/sdlc/qe/{epic-slug}/\` (e.g. automation/ or test files there)
+- **UAT**: Verify implementation against original user stories and acceptance criteria from PO.
 
-**Output**: Automation tests, test report. **Handoff to Security + Principle Engineer.**
+**Bug-fix loop**: If QE finds bugs or test failures → **Dev fixes** → **QE retests**. **Repeat until all tests pass and UAT approved (0 open bugs).** Only then → **Handoff to Security + Principle Engineer.**
 
-## Phase 8: Security + Principle Engineer (audit → fix loop)
+## Phase 8: Security + Principle Engineer (audit → fix → retest → re-audit loop)
 
-**Trigger**: After QE testing sign-off.
+**Trigger**: After QE testing sign-off (0 open bugs).
 **Roles** (can run in parallel):
 - **Security team**: Audit security risk (OWASP, auth, secrets, infra). Output: \`docs/sdlc/security/\`
 - **Principle Engineer**: Audit logic, architecture alignment, correctness. Output: \`docs/sdlc/principle-engineer/\`
 
-**Fix loop**: If issues found → **Dev fixes** → re-audit by Security + Principle Engineer. **Repeat until all issues resolved.** Only when sign-off → **Handoff to Deploy.**
+**Fix → retest → re-audit loop**: If issues/vulnerabilities found → **Dev fixes** → **QE retests** (verify fix, no regression) → **Security + PE re-audit**. **Repeat until 0 issues/vulnerabilities remain.** Only when sign-off → **Handoff to Deploy.**
 
 ## Phase 9: Deploy
 
@@ -386,15 +407,15 @@ User Request → PO → Business BA → Design (if app/web) → Architect → Te
 | Phase | Role | Key Output |
 |-------|------|------------|
 | 0 | Discovery | Raw request |
-| 1 | PO | PRD, user stories |
-| 2 | Business BA | FRS, process flows |
+| 1 | PO | PRD, user stories, feasibility assessment |
+| 2 | Business BA | FRS, NFR, process flows |
 | 3 | Design (if app/web) | Design specs + wireframes; PO+BA review until approved |
-| 4 | Architect | ADRs, system diagrams |
+| 4 | Architect | ADRs, system diagrams, security by design |
 | 5 | Technical BA | API specs, tech breakdown |
 | 6 | QE (docs) | Test plan, test cases |
-| 7 | Dev | Code, unit tests (≥90%) |
-| 8 | QE (testing + UAT) | QE Lead (15+ yrs automation) + Senior QE (10+ yrs), automation, UAT, sign-off |
-| 9 | Security + Principle Engineer | Security + logic audit; fix loop until all issues resolved; sign-off → Deploy |
+| 7 | Dev | Code, unit tests (100%), security shift-left |
+| 8 | QE (testing + UAT) | Automation, UAT; **bug-fix loop** (QE finds bugs → Dev fix → QE retest) until 0 open bugs |
+| 9 | Security + PE | Audit; **fix → retest → re-audit loop** (Dev fix → QE retest → re-audit) until 0 issues; sign-off → Deploy |
 | 10 | Deploy | Docker Compose + K8s |
 | 11 | Maintenance | Monitoring, bug fixes, patches, dependency updates |
 
@@ -431,18 +452,18 @@ Design specs (Markdown) + optional HTML wireframes from idea + PO + BA (before A
 TC-001: [Scenario] — Precondition, Steps, Expected, Links to AC
 
 ## QE Team (one folder per epic: qe/{epic-slug}/)
-- QE Lead (15+ yrs automation): test strategy, framework, automation architecture, review → docs/sdlc/qe/{epic-slug}/
-- Senior QE (10+ yrs): write automation tests → docs/sdlc/qe/{epic-slug}/
+- QE Lead (15+ yrs automation) — **highest model** (e.g. Opus): test strategy, framework, automation architecture, review → docs/sdlc/qe/{epic-slug}/
+- Senior QE (10+ yrs) — **cost-efficient model** (e.g. Haiku): write automation tests per QE Lead's strategy → docs/sdlc/qe/{epic-slug}/
 
 ## Dev Team
-- Tech Lead (15+ yrs): tech stack, review & merge → docs/sdlc/dev/tech-lead/
-- Senior Dev (10+ yrs): implement, Unit Test ≥90% → docs/sdlc/dev/senior-developer/
-- By project (all Senior 10+ yrs): Senior Frontend, Backend, Mobile, Embedded, Data/ML, Platform → docs/sdlc/dev/{role}/
+- Tech Lead (15+ yrs) — **highest model** (e.g. Opus): planning, logic, architecture decisions, code review → docs/sdlc/dev/tech-lead/
+- Senior Dev (10+ yrs) — **cost-efficient model** (e.g. Haiku): execute code from Tech Lead specs, Unit Test 100% → docs/sdlc/dev/senior-developer/
+- By project (all Senior 10+ yrs, cost-efficient model): Senior Frontend, Backend, Mobile, Embedded, Data/ML, Platform → docs/sdlc/dev/{role}/
 
 ## Security + Principle Engineer (after implementation)
 - Security team: audit security risk → docs/sdlc/security/
 - Principle Engineer: audit logic, architecture → docs/sdlc/principle-engineer/
-- **Fix loop**: If issues → Dev fixes → re-audit; repeat until all resolved. Sign-off → Deploy
+- **Fix loop**: If issues → Dev fixes → QE retests → re-audit; repeat until 0 issues. Sign-off → Deploy
 
 ## Deploy
 After Security + Principle Engineer sign-off → Docker Compose + K8s. See docs/sdlc/deploy/
@@ -455,17 +476,19 @@ const AGENTS_MD_CONTENT = `## SDLC Workflow
 
 **Trigger:** When the user sends an **idea**, **feature request**, or **requirement**, run the full pipeline (Phase 1 → 7) in sequence. One role (sub-agent) per phase; produce outputs then continue to the next. Do not stop after one phase until deployment unless the user asks to stop.
 
+**Memory requirement:** Before executing any new action, recall relevant memories (project context, user preferences, past decisions) to ensure continuity and avoid repeating mistakes.
+
 When working on requirements, features, or handoffs, follow these phases:
 
 1. **PO** — PRD, user stories → docs/sdlc/po/{epic-slug}/ (one folder per epic)
 2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/{epic-slug}/ (one folder per epic)
-3. **Design (if app/web)** — Design specs + wireframes → docs/sdlc/design/{epic-slug}/; **PO + BA review** until approved
+3. **Design (if app/web)** — Design specs + wireframes (**Anti AI**: no AI-looking designs) → docs/sdlc/design/{epic-slug}/; **PO + BA review** until approved
 4. **Architect** — ADRs, diagrams → docs/sdlc/architecture/
 5. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
 6. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
-7. **Dev** — After docs phase → **run implementation immediately**. Tech Lead + Senior Dev → docs/sdlc/dev/{role}/
-8. **QE (testing + UAT)** — QE Lead (15+ yrs automation) + Senior QE (10+ yrs) + UAT → docs/sdlc/qe/{epic-slug}/ (same folder per epic)
-9. **Security + Principle Engineer** — Security + logic audit; **fix loop** (Dev fixes → re-audit) until all issues resolved; sign-off before Deploy
+7. **Dev** — After docs phase → **run implementation immediately**. Tech Lead (highest model: planning, logic, review) + Senior Dev (cost-efficient model: code execution) → docs/sdlc/dev/{role}/
+8. **QE (testing + UAT)** — QE Lead (highest model: strategy, review) + Senior QE (cost-efficient model: test execution) + UAT; **bug-fix loop** (bugs → Dev fix → QE retest) until 0 bugs → docs/sdlc/qe/{epic-slug}/ (same folder per epic)
+9. **Security + Principle Engineer** — Security + logic audit; **fix → retest → re-audit loop** (Dev fixes → QE retests → re-audit) until 0 issues; sign-off before Deploy
 10. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
 11. **Maintenance** — Monitoring, bug fixes, patches, dependency updates → docs/sdlc/maintenance/
 
@@ -476,15 +499,17 @@ const CLAUDE_SDLC_CONTENT = `## SDLC Workflow
 
 **Trigger on idea:** When the user sends an idea, feature request, or requirement, run the pipeline continuously: Phase 1 (PO) → 2 → … → Deploy → Maintenance. One role per phase (single agent = switch role each phase). Do not stop after one phase unless the user asks.
 
+**Memory requirement:** Before executing any new action, recall relevant memories (project context, user preferences, past decisions) to ensure continuity and avoid repeating mistakes.
+
 1. **PO** — PRD, user stories, feasibility assessment → docs/sdlc/po/{epic-slug}/ (one folder per epic)
 2. **Business BA** — FRS, NFR, process flows → docs/sdlc/ba/business/{epic-slug}/ (one folder per epic)
-3. **Design (if app/web)** — Design specs + wireframes → docs/sdlc/design/{epic-slug}/; **PO + BA review** until approved
-4. **Architect** — ADRs, diagrams, security by design → docs/sdlc/architecture/
+3. **Design (if app/web)** — Design specs + wireframes (**Anti AI**: no AI-looking designs) → docs/sdlc/design/{epic-slug}/; **PO + BA review** until approved
+4. **Architect** — ADRs, diagrams, security by design, engineering principles (SOLID, DRY, KISS, CQRS, Zero Trust, EDA, HA) → docs/sdlc/architecture/
 5. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
 6. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
-7. **Dev** — After docs phase → **run implementation immediately**. Tech Lead + Senior Dev → docs/sdlc/dev/{role}/. Security shift-left: OWASP checks, dependency audit in CI
-8. **QE (testing + UAT)** — QE Lead (15+ yrs automation) + Senior QE (10+ yrs) + UAT → docs/sdlc/qe/{epic-slug}/ (same folder per epic)
-9. **Security + Principle Engineer** — Security + logic audit; **fix loop** (Dev fixes → re-audit) until all issues resolved; sign-off before Deploy
+7. **Dev** — After docs phase → **run implementation immediately**. Tech Lead (highest model: planning, logic, review) + Senior Dev (cost-efficient model: code execution) → docs/sdlc/dev/{role}/. Clean Code, SOLID, DRY, KISS, TDD/BDD. Security shift-left: OWASP checks, dependency audit in CI
+8. **QE (testing + UAT)** — QE Lead (highest model: strategy, review) + Senior QE (cost-efficient model: test execution) + UAT; **bug-fix loop** (bugs → Dev fix → QE retest) until 0 bugs → docs/sdlc/qe/{epic-slug}/ (same folder per epic)
+9. **Security + Principle Engineer** — Security + logic audit; **fix → retest → re-audit loop** (Dev fixes → QE retests → re-audit) until 0 issues; sign-off before Deploy
 10. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
 11. **Maintenance** — Monitoring, bug fixes, patches, dependency updates → docs/sdlc/maintenance/
 
@@ -499,13 +524,14 @@ For Cursor, see .cursor/rules/sdlc-workflow.mdc
 ## Trigger and orchestration
 
 - **When the user sends an idea, feature request, or requirement:** Start the pipeline and run it **continuously through deployment** (Phase 1 → 2 → … → 7). Do not handle everything in one main-agent response.
+- **Memory requirement:** Before executing any new action, recall relevant memories (project context, user preferences, past decisions) to ensure continuity and avoid repeating mistakes.
 - **One role per phase:** Execute each phase as that role only; write artifacts to the right folder; then continue to the next phase. In Cursor there is one agent — it simulates the pipeline by adopting one role per phase in sequence.
 - **Do not stop** after PO or any single phase unless the user explicitly asks to stop. Run through to Deploy.
 
 ## Flow
 
 \`\`\`
-User Request → PO → Business BA → Design (if app/web) → Architect → Technical BA → QE (docs) → Dev → QE (testing + UAT) → Security + PE audit → [fix loop] → Deploy → Maintenance
+User Request → PO → Business BA → Design (if app/web) → Architect → Technical BA → QE (docs) → Dev → QE (testing + UAT) → [bug-fix loop until 0 bugs] → Security + PE audit → [fix → retest → re-audit loop until 0 issues] → Deploy → Maintenance
 \`\`\`
 
 ## Phase Checklist
@@ -513,15 +539,15 @@ User Request → PO → Business BA → Design (if app/web) → Architect → Te
 | Phase | Role | Key Output |
 |-------|------|------------|
 | 0 | Discovery | Raw request |
-| 1 | PO | PRD, user stories |
-| 2 | Business BA | FRS, process flows |
+| 1 | PO | PRD, user stories, feasibility assessment |
+| 2 | Business BA | FRS, NFR, process flows |
 | 3 | Design (if app/web) | Design specs + wireframes; PO+BA review until approved |
-| 4 | Architect | ADRs, system diagrams |
+| 4 | Architect | ADRs, system diagrams, security by design |
 | 5 | Technical BA | API specs, tech breakdown |
 | 6 | QE (docs) | Test plan, test cases |
-| 7 | Dev | Code, unit tests (≥90%) |
-| 8 | QE (testing + UAT) | QE Lead (15+ yrs automation) + Senior QE (10+ yrs), automation, UAT, sign-off |
-| 9 | Security + Principle Engineer | Security + logic audit; fix loop until all issues resolved; sign-off → Deploy |
+| 7 | Dev | Code, unit tests (100%), security shift-left |
+| 8 | QE (testing + UAT) | Automation, UAT; **bug-fix loop** (QE finds bugs → Dev fix → QE retest) until 0 open bugs |
+| 9 | Security + PE | Audit; **fix → retest → re-audit loop** (Dev fix → QE retest → re-audit) until 0 issues; sign-off → Deploy |
 | 10 | Deploy | Docker Compose + K8s |
 | 11 | Maintenance | Monitoring, bug fixes, patches, dependency updates |
 
@@ -538,13 +564,13 @@ User Request → PO → Business BA → Design (if app/web) → Architect → Te
 - Output: \`docs/sdlc/ba/business/{epic-slug}/\` — **one folder per epic** (same slug as PO); do not merge into one file
 
 ### Phase 3: Design (optional — app/web only)
-- Create design specs (Markdown) + optional HTML wireframes based on idea + PO + BA docs. **Design before Architect so UX drives tech.**
+- Create design specs (Markdown) + optional HTML wireframes based on idea + PO + BA docs. **Design before Architect so UX drives tech.** **Anti AI pattern**: designs must NOT look AI-generated — prioritize unique, human-feeling aesthetics.
 - Output: \`docs/sdlc/design/{epic-slug}/\` — design-spec.md + optional wireframes/
 - **PO + Business BA review**: Both check design vs epic/FRS; if not aligned → feedback → redesign loop until approved
 - When approved → handoff to Architect
 
 ### Phase 4: Architect
-- System context, container diagram, ADRs, tech stack, **security by design** (threat model, auth architecture, encryption, secrets mgmt). Input: Business BA (FR + NFR) + Design (if app/web)
+- System context, container diagram, ADRs, tech stack, **security by design** (threat model, auth architecture, encryption, secrets mgmt). **Engineering principles**: SOLID, DRY, KISS, SoC, High Availability, CQRS, Zero Trust, EDA, Statelessness, Backing Services, Config, Logging & Tracing, Monitoring & Alerting. Input: Business BA (FR + NFR) + Design (if app/web)
 - Output: \`docs/sdlc/architecture/\`
 
 ### Phase 5: Technical BA
@@ -559,19 +585,20 @@ User Request → PO → Business BA → Design (if app/web) → Architect → Te
 ### Phase 5b: Dev Teams
 - **Tech Lead (15+ yrs)**: Tech stack, review & merge, **security review (Shift Left)**: OWASP check, dependency audit, SAST in CI. Output: \`docs/sdlc/dev/tech-lead/\`
 - **Implementation roles** (all Senior 10+ yrs; use only what applies): Senior Dev, Senior Frontend, Senior Backend, Senior Mobile, Senior Embedded, Senior Data/ML, Senior Platform → \`docs/sdlc/dev/{role}/\`. See \`implementation-roles.template.md\`.
-- **Requirement**: Unit Test coverage **≥ 90%**; security practices (input validation, no hardcoded secrets)
+- **Requirement**: Unit Test coverage **100%** (TDD/BDD); Clean Code, SOLID, DRY, KISS, SoC, POLS; security practices (input validation, no hardcoded secrets)
 - **Then**: QE starts testing phase
 
-### Phase 6: QE (Testing — automation + UAT)
+### Phase 6: QE (Testing — automation + UAT) → bug-fix loop
 - **QE Lead (15+ yrs automation)**: Test strategy, framework choice, automation architecture; review test code. Output per epic: \`docs/sdlc/qe/{epic-slug}/\`
 - **Senior QE (10+ yrs)**: Write automation tests per QE Lead's strategy. Output per epic: \`docs/sdlc/qe/{epic-slug}/\`
 - **UAT (User Acceptance Testing)**: Verify implementation against original user stories and acceptance criteria from PO; confirm business requirements are met from end-user perspective. Output: \`qe/{epic-slug}/uat-results.md\`
-- **Handoff to Security + Principle Engineer**
+- **Bug-fix loop**: If QE finds bugs or test failures → **Dev fixes** → **QE retests**. **Repeat until all tests pass and UAT approved (0 open bugs).** Only then → handoff to Security + PE
+- **Handoff to Security + Principle Engineer** (only after 0 open bugs)
 
-### Phase 7: Security + Principle Engineer (audit → fix loop)
+### Phase 7: Security + Principle Engineer (audit → fix → retest loop)
 - **Security team**: Audit security risk (OWASP, auth, secrets, infra). Output: \`docs/sdlc/security/\`
 - **Principle Engineer**: Audit logic, architecture alignment, correctness. Output: \`docs/sdlc/principle-engineer/\`
-- **Fix loop**: If issues found → Dev fixes → Security + PE re-audit. **Repeat until all issues resolved.** Sign-off → **Handoff to Deploy**
+- **Fix → retest → re-audit loop**: If issues/vulnerabilities found → **Dev fixes** → **QE retests** (verify fix, no regression) → **Security + PE re-audit**. **Repeat until 0 issues/vulnerabilities remain.** Sign-off → **Handoff to Deploy**
 
 ### Phase 8: Deploy
 - After Security + Principle Engineer sign-off → deploy with **Docker Compose** (local/staging) and **Kubernetes** (production)
@@ -611,8 +638,8 @@ There is **one agent** per conversation. It simulates the pipeline by **adopting
 - [ ] Phase 5 Technical BA: \`docs/sdlc/ba/technical/\`
 - [ ] Phase 6 QE docs: \`docs/sdlc/qe/{epic-slug}/\` (one folder per epic)
 - [ ] Phase 7 Dev: code + unit tests, \`docs/sdlc/dev/\`
-- [ ] Phase 8 QE testing + UAT: automation, UAT against user stories, sign-off → \`docs/sdlc/qe/{epic-slug}/\`
-- [ ] Phase 9 Security + Principle Engineer: \`docs/sdlc/security/\`, \`docs/sdlc/principle-engineer/\`; fix loop until no issues; sign-off
+- [ ] Phase 8 QE testing + UAT: automation, UAT; **bug-fix loop** (bugs → Dev fix → QE retest) until 0 open bugs → \`docs/sdlc/qe/{epic-slug}/\`
+- [ ] Phase 9 Security + Principle Engineer: audit → **fix → retest → re-audit loop** until 0 issues/vulnerabilities; sign-off → \`docs/sdlc/security/\`, \`docs/sdlc/principle-engineer/\`
 - [ ] Phase 10 Deploy: \`docs/sdlc/deploy/\`, Docker Compose + K8s
 - [ ] Phase 11 Maintenance: monitoring, bug fixes, patches, dependency updates → \`docs/sdlc/maintenance/\`
 `;
@@ -630,8 +657,8 @@ Deploy: docs/sdlc/deploy/ (Docker Compose + K8s)
 - **Business BA**: \`docs/sdlc/ba/business/{epic-slug}/\` — same slug as PO. Files: functional-requirements.md, process-flows.md. Do not merge all epics into one file.
 - **Design (if app/web)**: \`docs/sdlc/design/{epic-slug}/\` — design specs (Markdown) + optional HTML wireframes; PO+BA review until approved.
 - **QE**: \`docs/sdlc/qe/{epic-slug}/\` — same slug as PO/BA. Files: test-plan.md, test-cases.md, automation. Do not put all epics in one file.
-- **Security**: \`docs/sdlc/security/\` — security audit; fix loop until no issues
-- **Principle Engineer**: \`docs/sdlc/principle-engineer/\` — logic audit; fix loop until no issues
+- **Security**: \`docs/sdlc/security/\` — security audit; fix → retest → re-audit loop until 0 issues
+- **Principle Engineer**: \`docs/sdlc/principle-engineer/\` — logic audit; fix → retest → re-audit loop until 0 issues
 - **Maintenance**: \`docs/sdlc/maintenance/\` — monitoring, bug fixes, patches, runbooks
 `;
 
@@ -648,7 +675,7 @@ Every role in the SDLC runs as a **sub-agent**. Each phase is assigned to a corr
 | Technical BA | technical-ba | docs/sdlc/architecture/ + design (if any) | docs/sdlc/ba/technical/ |
 | QE (docs) | qe-docs | docs/sdlc/ba/technical/ (+ design if any) | docs/sdlc/qe/{epic-slug}/ (one folder per epic) |
 | Tech Lead | tech-lead | Technical spec | Review, merge, docs/sdlc/dev/tech-lead/ |
-| Senior Dev | senior-dev | Spec + test plan | After docs → run implementation immediately. Code, unit tests (≥90%) |
+| Senior Dev | senior-dev | Spec + test plan | After docs → run implementation immediately. Code, unit tests (100%) |
 | Senior Frontend | frontend | UI spec, API contract | Web UI, docs/sdlc/dev/frontend/ |
 | Senior Backend | backend | API spec, DB schema | API, services, docs/sdlc/dev/backend/ |
 | Senior Mobile | mobile | API contract, design | App (iOS/Android), docs/sdlc/dev/mobile/ |
@@ -657,9 +684,9 @@ Every role in the SDLC runs as a **sub-agent**. Each phase is assigned to a corr
 | Senior Platform | platform | Infra spec | CI/CD, observability, docs/sdlc/dev/platform/ |
 | QE Lead | qe-lead | Test plan | 15+ yrs automation: strategy, framework, review → docs/sdlc/qe/{epic-slug}/ |
 | Senior QE | senior-qe | Test plan + framework | Automation tests → docs/sdlc/qe/{epic-slug}/ |
-| Security | security | Code, infra | Security audit → docs/sdlc/security/; fix loop until no issues |
-| Principle Engineer | principle-engineer | Code, architecture | Logic audit → docs/sdlc/principle-engineer/; fix loop until no issues |
-| Deploy | deploy | Security + PE sign-off (after fix loop) | Docker Compose + K8s, docs/sdlc/deploy/ |
+| Security | security | Code, infra | Security audit → docs/sdlc/security/; fix → retest → re-audit loop until 0 issues |
+| Principle Engineer | principle-engineer | Code, architecture | Logic audit → docs/sdlc/principle-engineer/; fix → retest → re-audit loop until 0 issues |
+| Deploy | deploy | Security + PE sign-off (after 0 issues) | Docker Compose + K8s, docs/sdlc/deploy/ |
 | Maintenance | maintenance | Live application | Monitoring, bug fixes, patches, docs/sdlc/maintenance/ |
 
 Orchestrator: run each sub-agent in order; hand off output → input of the next sub-agent.
@@ -669,11 +696,11 @@ Orchestrator: run each sub-agent in order; hand off output → input of the next
 
 const SECURITY_README = `# Security Team
 
-**When:** After implementation (Dev) and QE testing. **Before** Deploy.
+**When:** After implementation (Dev) and QE testing (0 open bugs). **Before** Deploy.
 
 **Role:** Audit security risk in code, APIs, infra, and configuration. Identify vulnerabilities and recommend mitigations.
 
-**Fix loop:** If issues found → Dev fixes → re-audit. Repeat until all issues resolved; then sign-off to Deploy.
+**Fix → retest → re-audit loop:** If issues/vulnerabilities found → **Dev fixes** → **QE retests** (verify fix, no regression) → **Security re-audit**. Repeat until 0 issues/vulnerabilities remain; then sign-off to Deploy.
 
 ## Detailed tasks
 
@@ -681,16 +708,16 @@ const SECURITY_README = `# Security Team
 - [ ] **Security audit**: OWASP Top 10, auth/authz, injection, XSS, CSRF, secrets exposure, dependency vulns
 - [ ] **Infra/ops security**: Network, TLS, RBAC, secrets management
 - [ ] **Report**: Findings, severity, remediation; output to \`docs/sdlc/security/\`
-- [ ] **Fix loop**: If critical/high issues found → Dev fixes → re-audit. **Repeat until all issues resolved**; then sign-off to Deploy.
+- [ ] **Fix → retest → re-audit loop**: If issues found → Dev fixes → **QE retests** (confirm fix, no regression) → Security re-audit. **Repeat until 0 issues/vulnerabilities remain**; then sign-off to Deploy.
 `;
 
 const PRINCIPLE_ENGINEER_README = `# Principle Engineer
 
-**When:** After implementation (Dev) and QE testing. **Before** Deploy.
+**When:** After implementation (Dev) and QE testing (0 open bugs). **Before** Deploy.
 
 **Role:** Audit logic, architecture alignment, design decisions, and technical quality. Ensure correctness and consistency with specs.
 
-**Fix loop:** If issues found → Dev fixes → re-audit. Repeat until all issues resolved; then sign-off to Deploy.
+**Fix → retest → re-audit loop:** If issues found → **Dev fixes** → **QE retests** (verify fix, no regression) → **PE re-audit**. Repeat until 0 issues remain; then sign-off to Deploy.
 
 ## Detailed tasks
 
@@ -698,12 +725,12 @@ const PRINCIPLE_ENGINEER_README = `# Principle Engineer
 - [ ] **Logic audit**: Business logic correctness, edge cases, error handling, data flow
 - [ ] **Architecture audit**: Alignment with ADRs, patterns, scalability, maintainability
 - [ ] **Report**: Findings, recommendations; output to \`docs/sdlc/principle-engineer/\`
-- [ ] **Fix loop**: If critical logic/arch issues found → Dev fixes → re-audit. **Repeat until all issues resolved**; then sign-off to Deploy.
+- [ ] **Fix → retest → re-audit loop**: If logic/arch issues found → Dev fixes → **QE retests** (confirm fix, no regression) → PE re-audit. **Repeat until 0 issues remain**; then sign-off to Deploy.
 `;
 
 const DEPLOY_README = `# Deploy
 
-After the pipeline completes (Security + Principle Engineer sign-off, after fix loop until no issues), deploy immediately with:
+After the pipeline completes (Security + Principle Engineer sign-off, after fix → retest → re-audit loop until 0 issues), deploy immediately with:
 
 **After Deploy → Maintenance phase**: monitoring, bug fixes, patches, dependency updates.
 
@@ -845,6 +872,7 @@ const PO_README = `# PO (Product Owner)
 - [ ] **Prioritize**: Must / Should / Could have; order by value and risk
 - [ ] **Identify dependencies**: External teams, systems, blockers
 - [ ] **Call out risks**: Technical, schedule, compliance
+- [ ] **Feasibility assessment**: Evaluate technical feasibility, resource availability, timeline viability, and budget constraints. Flag blockers early. Document go/no-go recommendation
 - [ ] **Handoff to Business BA**: Deliverables in \`po/{epic-slug}/\`
 
 Use epic-brief.template.md as starting point for each epic.
@@ -1058,6 +1086,7 @@ Use adr.template.md for new ADRs.
 - [ ] **ADR per decision**: Context, decision, consequences (scope: backend, frontend, mobile, etc.)
 - [ ] **Non-functional alignment**: Performance, security, scalability, compliance — reference NFRs from Business BA
 - [ ] **Security by design (Shift Left)**: Threat model (STRIDE/attack surface), auth/authz architecture, data encryption at rest/transit, secrets management approach, dependency security policy. Document in ADR
+- [ ] **Engineering principles alignment**: Verify architecture follows — SOLID, DRY, KISS, SoC, LoD, CoI, GRASP, High Availability, CQRS (if applicable), Zero Trust, EDA (if applicable), Statelessness, Disposability, Backing Services, Config (externalize), Database Sharding/Partitioning (if applicable), Codebase (single per service), Logging & Tracing, Monitoring & Alerting
 - [ ] **Handoff to Technical BA**: Architecture docs, ADRs in \`architecture/\`
 `;
 
@@ -1099,7 +1128,8 @@ const QE_README = `# QE (Quality Engineering)
 - [ ] **QE Lead**: Test strategy, framework, review test code
 - [ ] **Senior QE**: Write automation tests per test plan
 - [ ] **UAT (User Acceptance Testing)**: Verify against original user stories and acceptance criteria from PO; confirm business requirements are met from end-user perspective. Document UAT results in \`qe/{epic-slug}/uat-results.md\`
-- [ ] **Sign-off**: Regression, coverage, UAT pass, release readiness in \`qe/{epic-slug}/\`
+- [ ] **Bug-fix loop**: If bugs or test failures found → **Dev fixes** → **QE retests**. **Repeat until all tests pass and UAT approved (0 open bugs)**. Only then → handoff to Security + PE
+- [ ] **Sign-off**: Regression pass, coverage met, UAT approved, 0 open bugs → release readiness in \`qe/{epic-slug}/\`
 
 Example:
 \`\`\`
@@ -1121,6 +1151,8 @@ Use test-case.template.md for test cases.
 `;
 
 const QE_LEAD_README = `# QE Lead (15+ years exp in test automation)
+
+> **Model**: Use the **highest-tier model** (e.g. Claude Opus) for this role. QE Lead handles test strategy, framework decisions, automation architecture, and review — tasks that require maximum reasoning capability.
 
 **Profile**: 15+ years of experience in test automation, test strategy, and quality engineering. Owns test automation strategy, framework selection, and quality gates across the project.
 
@@ -1145,6 +1177,8 @@ const QE_LEAD_README = `# QE Lead (15+ years exp in test automation)
 
 const QE_SENIOR_README = `# Senior QE (10+ years exp)
 
+> **Model**: Use a **cost-efficient model** (e.g. Claude Haiku). Execute test implementation from QE Lead's strategy and specs.
+
 **Responsibilities**:
 - Write automation tests per test plan
 - Implement E2E, integration, regression tests
@@ -1166,6 +1200,8 @@ const DESIGN_README = `# Design (optional — app/web projects only)
 
 **Why before Architect:** UX drives technical decisions — design informs architecture and API specs.
 
+**Anti AI pattern:** Designs must NOT look like they were generated by AI. Avoid generic, templated, overly symmetric, cookie-cutter layouts. Prioritize personality, asymmetry, intentional whitespace, brand-specific visual language, and human-feeling aesthetics.
+
 **One folder per epic:** \`docs/sdlc/design/{epic-slug}/\` — same slug as PO/BA. Store design specs and wireframes there.
 
 ## Output format
@@ -1182,6 +1218,7 @@ const DESIGN_README = `# Design (optional — app/web projects only)
 
 ## Detailed tasks
 
+- [ ] **Anti AI check**: Ensure design does NOT look AI-generated — no generic hero sections, stock illustrations, perfectly symmetric grids, or bland templates. Aim for unique, human-feeling aesthetics
 - [ ] **Gather context**: Read PO epic brief, BA FRS, user stories as input
 - [ ] **Screen inventory**: List all screens/pages with purpose and key elements
 - [ ] **Component hierarchy**: Define reusable components, layout structure, navigation
@@ -1253,14 +1290,24 @@ App
 - **Typography:** ...
 - **Spacing:** ...
 
+## Anti AI Checklist
+- [ ] No generic/templated layouts — design feels unique and intentional
+- [ ] No stock AI illustrations — use real or custom imagery
+- [ ] Asymmetry and visual interest — not perfectly symmetric grids
+- [ ] Brand-specific colors, typography, spacing — not default palettes
+- [ ] Human-feeling micro-interactions and copy
+
 ## Notes
 [Any additional context, constraints, or decisions]
 `;
 
 const DEV_TECH_LEAD_README = `# Tech Lead (15+ years exp)
 
+> **Model**: Use the **highest-tier model** (e.g. Claude Opus) for this role. Tech Lead handles planning, logic analysis, architecture decisions, and code review — tasks that require maximum reasoning capability.
+
 **Responsibilities**:
 - Decide tech stack, frameworks, libraries
+- Define implementation plan, critical logic, and technical specs for implementation roles
 - Review and merge code
 - Ensure architecture alignment
 
@@ -1268,27 +1315,31 @@ const DEV_TECH_LEAD_README = `# Tech Lead (15+ years exp)
 
 - [ ] **Read architecture and Technical BA spec**: ADRs, API spec, team breakdown
 - [ ] **Tech stack decision**: Languages, frameworks, libraries; document in ADR
+- [ ] **Implementation plan**: Define step-by-step tasks, critical logic, edge cases, and technical specs that implementation roles will execute
 - [ ] **Project setup**: Repo structure, tooling, lint, format, CI baseline
 - [ ] **Code review**: Architecture alignment, patterns, test coverage, security
 - [ ] **Security review (Shift Left)**: OWASP Top 10 check, input validation, auth/authz, secrets not hardcoded, dependency audit (npm audit / pip audit / etc.), SAST scan in CI
 - [ ] **Merge approval**: Enforce quality gates before merge (tests, coverage, security scan pass)
 - [ ] **Tech guidance**: Resolve technical disputes; mentor team
+- [ ] **Engineering principles enforcement**: Code review must verify — Clean Code, SOLID, DRY, KISS, SoC, LoD, CoI, GRASP, POLS, TDD/BDD. Architecture patterns: Statelessness, Disposability, Backing Services, Config externalization, Logging & Tracing, Monitoring & Alerting
 - [ ] **Output**: ADRs, review checklist in \`dev/tech-lead/\`
 `;
 
 const DEV_SENIOR_README = `# Senior Developer (10+ years exp)
 
+> **Model**: Use a **cost-efficient model** (e.g. Claude Haiku) for this role. Implementation is executed from Tech Lead's detailed specs — optimizing cost while maintaining quality through clear instructions.
+
 **Responsibilities**:
-- Implement features per Technical BA spec
-- Write code with Unit Test coverage **≥ 90%**
+- Implement features per Tech Lead's implementation plan and Technical BA spec
+- Write code with Unit Test coverage **100%**
 - Follow Tech Lead's tech decisions
 
 ## Detailed tasks
 
 - [ ] **Read Technical BA spec**: API, schema, team breakdown
-- [ ] **Implement feature**: Code per spec; follow Tech Lead stack
+- [ ] **Implement feature**: Code per spec; follow Tech Lead stack. Adhere to: Clean Code, SOLID, DRY, KISS, SoC, LoD, CoI, GRASP, POLS
 - [ ] **Security practices (Shift Left)**: Input validation, parameterized queries, no hardcoded secrets, follow Architect's security ADR
-- [ ] **Unit tests**: Coverage **≥ 90%**; edge cases, error paths
+- [ ] **Unit tests (TDD/BDD)**: Coverage **100%**; TDD (write tests first) or BDD (behavior specs); edge cases, error paths, BSR (Behavior-Structure-Result)
 - [ ] **PR**: Lint, tests, security scan passing; request Tech Lead review
 - [ ] **Output**: Code + implementation notes in \`dev/senior-developer/\`
 `;
@@ -1296,6 +1347,15 @@ const DEV_SENIOR_README = `# Senior Developer (10+ years exp)
 const DEV_IMPLEMENTATION_ROLES_TEMPLATE = `# Implementation roles by project type
 
 Use only the roles that apply. Remove or ignore the rest. Tech Lead is cross-cutting; add discipline roles as needed.
+
+## Model optimization strategy
+
+| Role | Model tier | Why |
+|------|-----------|-----|
+| Tech Lead | **Highest** (e.g. Opus) | Planning, logic analysis, architecture decisions, code review |
+| All implementation roles | **Cost-efficient** (e.g. Haiku) | Execute code from Tech Lead's detailed specs |
+
+Tech Lead defines all critical steps, logic, and specs first → implementation roles execute them. This maximizes quality on thinking while reducing cost on execution.
 
 ## By project type
 
@@ -1325,9 +1385,11 @@ Use only the roles that apply. Remove or ignore the rest. Tech Lead is cross-cut
 
 const DEV_FRONTEND_README = `# Senior Frontend (10+ years exp) — Web UI
 
+> **Model**: Use a **cost-efficient model** (e.g. Claude Haiku). Execute from Tech Lead's specs.
+
 **Responsibilities**:
 - Implement web UI per design and API contract
-- Unit Test coverage **≥ 90%**
+- Unit Test coverage **100%**
 - Follow Tech Lead's stack (e.g. React, Vue, Angular)
 
 ## Detailed tasks
@@ -1335,16 +1397,18 @@ const DEV_FRONTEND_README = `# Senior Frontend (10+ years exp) — Web UI
 - [ ] **Read Technical BA spec**: API contract, design (if any)
 - [ ] **Implement components/screens**: Per spec; responsive, accessible
 - [ ] **API integration**: Fetch, state, error handling
-- [ ] **Unit tests**: Components, hooks, utils — coverage **≥ 90%**
+- [ ] **Unit tests (TDD/BDD)**: Components, hooks, utils — coverage **100%**; follow Clean Code, SOLID, DRY, KISS
 - [ ] **PR**: Lint, tests; Tech Lead review
 - [ ] **Output**: Code + component/integration docs in \`dev/frontend/\`
 `;
 
 const DEV_BACKEND_README = `# Senior Backend (10+ years exp) — API, services
 
+> **Model**: Use a **cost-efficient model** (e.g. Claude Haiku). Execute from Tech Lead's specs.
+
 **Responsibilities**:
 - Implement API, services, DB layer per Technical BA spec
-- Unit Test coverage **≥ 90%**
+- Unit Test coverage **100%**
 - Follow Tech Lead's stack
 
 ## Detailed tasks
@@ -1352,16 +1416,18 @@ const DEV_BACKEND_README = `# Senior Backend (10+ years exp) — API, services
 - [ ] **Read Technical BA spec**: API spec, DB schema
 - [ ] **Implement endpoints**: Per spec; validation, auth, error responses
 - [ ] **Implement DB layer**: Migrations, queries, transactions
-- [ ] **Unit tests**: Services, controllers, DB — coverage **≥ 90%**
+- [ ] **Unit tests (TDD/BDD)**: Services, controllers, DB — coverage **100%**; follow Clean Code, SOLID, DRY, KISS
 - [ ] **PR**: Lint, tests; Tech Lead review
 - [ ] **Output**: Code + API/DB implementation notes in \`dev/backend/\`
 `;
 
 const DEV_MOBILE_README = `# Senior Mobile (10+ years exp) — iOS / Android / cross-platform
 
+> **Model**: Use a **cost-efficient model** (e.g. Claude Haiku). Execute from Tech Lead's specs.
+
 **Responsibilities**:
 - Implement app UI and API integration per spec
-- Unit Test coverage **≥ 90%**
+- Unit Test coverage **100%**
 - Follow Tech Lead's stack (e.g. React Native, Flutter, native)
 
 ## Detailed tasks
@@ -1369,12 +1435,14 @@ const DEV_MOBILE_README = `# Senior Mobile (10+ years exp) — iOS / Android / c
 - [ ] **Read Technical BA spec**: API contract, screen flows
 - [ ] **Implement screens/modules**: Per spec; platform parity (iOS/Android)
 - [ ] **API integration**: Auth, state, offline (if required)
-- [ ] **Unit tests**: Components, logic — coverage **≥ 90%**
+- [ ] **Unit tests (TDD/BDD)**: Components, logic — coverage **100%**; follow Clean Code, SOLID, DRY, KISS
 - [ ] **PR**: Lint, tests; Tech Lead review
 - [ ] **Output**: Code + screen/module docs in \`dev/mobile/\`
 `;
 
 const DEV_EMBEDDED_README = `# Senior Embedded (10+ years exp) — firmware, IoT
+
+> **Model**: Use a **cost-efficient model** (e.g. Claude Haiku). Execute from Tech Lead's specs.
 
 **Responsibilities**:
 - Implement firmware, drivers, hardware interfaces per spec
@@ -1392,6 +1460,8 @@ const DEV_EMBEDDED_README = `# Senior Embedded (10+ years exp) — firmware, IoT
 
 const DEV_DATA_ML_README = `# Senior Data/ML (10+ years exp)
 
+> **Model**: Use a **cost-efficient model** (e.g. Claude Haiku). Execute from Tech Lead's specs.
+
 **Responsibilities**:
 - Implement ETL, models, analytics pipelines per spec
 - Tests and validation for data and model quality
@@ -1408,6 +1478,8 @@ const DEV_DATA_ML_README = `# Senior Data/ML (10+ years exp)
 `;
 
 const DEV_PLATFORM_README = `# Senior Platform (10+ years exp) — infra, CI/CD
+
+> **Model**: Use a **cost-efficient model** (e.g. Claude Haiku). Execute from Tech Lead's specs.
 
 **Responsibilities**:
 - Implement CI/CD, infra as code, observability per spec

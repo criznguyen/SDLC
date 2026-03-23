@@ -5,12 +5,13 @@ Scaffold SDLC workflow docs and templates into your project. Works with **Cursor
 ## Flow
 
 ```
-User Request → PO → Business BA → Design (if app/web) → Architect → Technical BA → QE (docs) → Dev → QE (testing + UAT) → Security + PE audit → [fix loop until no issues] → Deploy → Maintenance
+User Request → PO → Business BA → Design (if app/web) → Architect → Technical BA → QE (docs) → Dev → QE (testing + UAT) → [bug-fix loop until 0 bugs] → Security + PE audit → [fix → retest → re-audit loop until 0 issues] → Deploy → Maintenance
 ```
 
 - **Trigger:** When you send an **idea** or **feature request**, the agent should run the **full pipeline** (PO → … → Deploy) in sequence, one sub-agent/role per phase — not handle everything in one go or stop after one phase. See `docs/sdlc/ORCHESTRATION.md`.
 - **Design (optional):** For app/web projects, after Business BA → create **design specs** (Markdown) + optional **HTML wireframes**; **PO + Business BA review** until approved; then Architect + Technical BA. UX drives technical decisions.
-- **Security + Principle Engineer:** After implementation and QE testing → security + logic audit; **fix loop** (Dev fixes → re-audit) until all issues resolved; sign-off before Deploy.
+- **QE bug-fix loop:** After QE finds bugs → Dev fixes → QE retests → repeat until 0 open bugs.
+- **Security + Principle Engineer:** After QE sign-off (0 bugs) → security + logic audit; **fix → retest → re-audit loop** (Dev fixes → QE retests → re-audit) until 0 issues/vulnerabilities; sign-off before Deploy.
 - **Each role runs as a sub-agent** (see `docs/sdlc/agents/`).
 - **After completion** → deploy immediately with **Docker Compose** (local/staging) and **Kubernetes** (production) — `docs/sdlc/deploy/`.
 - **Maintenance:** After Deploy → monitoring, bug fixes, patches, dependency updates, performance tuning — `docs/sdlc/maintenance/`.
@@ -20,22 +21,28 @@ User Request → PO → Business BA → Design (if app/web) → Architect → Te
 
 ## Usage
 
+### `init` — Project setup
+
 In your project directory:
 
 ```bash
 npx sdlc-workflow init
 ```
 
-This creates:
-
-**Project:**
+Creates project-level files:
 - `docs/sdlc/` — SDLC docs, templates, and phase folders
-- `AGENTS.md` — Antigravity, Codex (universal project guidance)
-- `.agents/skills/sdlc-workflow/` — Codex repo skill
 - `.cursor/rules/sdlc-workflow.mdc` — Cursor rule
 - `.claude/CLAUDE.md` — Claude Code instructions
+- `AGENTS.md` — Antigravity, Codex (universal project guidance)
+- `.agents/skills/sdlc-workflow/` — Codex repo skill
 
-**Global (user home):**
+### `install` — Global setup
+
+```bash
+npx sdlc-workflow install
+```
+
+Installs global skills (run once per machine):
 - `~/.cursor/skills/sdlc-workflow/` — Cursor skill
 - `~/.codex/AGENTS.md` — Codex global instructions
 - `~/.agents/skills/sdlc-workflow/` — Codex global skill
