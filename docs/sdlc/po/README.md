@@ -17,6 +17,7 @@
 - [ ] **Identify dependencies**: External teams, systems, blockers
 - [ ] **Call out risks**: Technical, schedule, compliance
 - [ ] **Feasibility assessment**: Evaluate technical feasibility, resource availability, timeline viability, and budget constraints. Flag blockers early. Document go/no-go recommendation
-- [ ] **Handoff to Business BA**: Deliverables in `po/{epic-slug}/`
+- [ ] **Pack output**: `sdlc-workflow pack docs/sdlc/po/{epic-slug}/` → `po/{epic-slug}.packed.md`
+- [ ] **Handoff to Business BA**: Pass `po/{epic-slug}.packed.md` (not individual files)
 
 Use epic-brief.template.md as starting point for each epic.

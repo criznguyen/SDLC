@@ -10,7 +10,7 @@
 
 ## Detailed tasks
 
-- [ ] **Read architecture and Technical BA spec**: ADRs, API spec, team breakdown
+- [ ] **Read packed inputs**: `architecture.packed.md` + `ba/technical.packed.md` + `design/{epic-slug}.packed.md` (if app/web) — do NOT load individual files
 - [ ] **Tech stack decision**: Languages, frameworks, libraries; document in ADR
 - [ ] **Implementation plan**: Define step-by-step tasks, critical logic, edge cases, and technical specs that implementation roles will execute
 - [ ] **Project setup**: Repo structure, tooling, lint, format, CI baseline

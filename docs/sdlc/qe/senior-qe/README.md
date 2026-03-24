@@ -7,7 +7,7 @@
 
 ## Detailed tasks
 
-- [ ] **Read test plan**: Scope, coverage goals, test case IDs
+- [ ] **Read packed inputs**: `qe/{epic-slug}.packed.md` + `ba/technical.packed.md` — do NOT load individual files
 - [ ] **Implement E2E tests**: UI flows, critical paths per QE Lead's framework
 - [ ] **Implement API/integration tests**: Request/response, contracts
 - [ ] **Implement regression suite**: Add to CI; ensure stability (retries, waits)

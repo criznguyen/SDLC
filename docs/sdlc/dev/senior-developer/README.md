@@ -9,7 +9,7 @@
 
 ## Detailed tasks
 
-- [ ] **Read Technical BA spec**: API, schema, team breakdown
+- [ ] **Read packed inputs**: `ba/technical.packed.md` + `qe/{epic-slug}.packed.md` — do NOT load individual files
 - [ ] **Implement feature**: Code per spec; follow Tech Lead stack. Adhere to: Clean Code, SOLID, DRY, KISS, SoC, LoD, CoI, GRASP, POLS
 - [ ] **Security practices (Shift Left)**: Input validation, parameterized queries, no hardcoded secrets, follow Architect's security ADR
 - [ ] **Unit tests (TDD/BDD)**: Coverage **≥ 90%**; TDD (write tests first) or BDD (behavior specs); edge cases, error paths, BSR (Behavior-Structure-Result)

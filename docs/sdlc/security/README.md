@@ -8,7 +8,7 @@
 
 ## Detailed tasks
 
-- [ ] **Read implementation**: Code, API specs, infra configs (docker-compose, k8s)
+- [ ] **Read packed inputs**: `architecture.packed.md` + `ba/technical.packed.md` + code — do NOT load individual spec files
 - [ ] **Security audit**: OWASP Top 10, auth/authz, injection, XSS, CSRF, secrets exposure, dependency vulns
 - [ ] **Infra/ops security**: Network, TLS, RBAC, secrets management
 - [ ] **Report**: Findings, severity, remediation; output to `docs/sdlc/security/`

@@ -8,7 +8,7 @@
 
 ## Detailed tasks
 
-- [ ] **Read implementation**: Code, architecture ADRs, Technical BA spec
+- [ ] **Read packed inputs**: `architecture.packed.md` + `ba/technical.packed.md` + code — do NOT load individual spec files
 - [ ] **Logic audit**: Business logic correctness, edge cases, error handling, data flow
 - [ ] **Architecture audit**: Alignment with ADRs, patterns, scalability, maintainability
 - [ ] **Report**: Findings, recommendations; output to `docs/sdlc/principle-engineer/`

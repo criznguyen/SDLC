@@ -23,7 +23,7 @@
 ## Detailed tasks
 
 - [ ] **Anti AI check**: Ensure design does NOT look AI-generated — no generic hero sections, stock illustrations, perfectly symmetric grids, or bland templates. Aim for unique, human-feeling aesthetics
-- [ ] **Gather context**: Read PO epic brief, BA FRS, user stories as input
+- [ ] **Read packed inputs**: `po/{epic-slug}.packed.md` + `ba/business/{epic-slug}.packed.md` — do NOT load individual files
 - [ ] **Screen inventory**: List all screens/pages with purpose and key elements
 - [ ] **Component hierarchy**: Define reusable components, layout structure, navigation
 - [ ] **User flows**: Document step-by-step flows for each user story (include happy path + error states)
@@ -33,4 +33,5 @@
 - [ ] **PO review**: Check design aligns with epic brief, user stories, acceptance criteria
 - [ ] **Business BA review**: Check design matches functional requirements, process flows
 - [ ] **If not approved**: Capture feedback; loop back to design step with specific changes
-- [ ] **If approved**: Handoff to Architect; design in `design/{epic-slug}/`
+- [ ] **Pack output**: `sdlc-workflow pack docs/sdlc/design/{epic-slug}/` → `design/{epic-slug}.packed.md`
+- [ ] **If approved**: Handoff to Architect; pass `design/{epic-slug}.packed.md`

@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 import { mkdir, writeFile, readFile, cp } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { handleDocpackCommand } from "./docpack.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PKG_ROOT = join(__dirname, "..");
@@ -53,16 +54,32 @@ async function main() {
     return;
   }
 
+  if (command === "pack" || command === "unpack" || command === "inspect") {
+    try {
+      await handleDocpackCommand(args);
+    } catch (err) {
+      console.error("Error:", err.message);
+      process.exit(1);
+    }
+    return;
+  }
+
   console.log("Usage: npx sdlc-workflow <command>");
   console.log("");
   console.log("Commands:");
   console.log("  init     Scaffold SDLC docs and templates into current project");
   console.log("  install  Install global skills (Cursor, Codex) to home directory");
+  console.log("  pack     Compress .md files into agent-optimized format");
+  console.log("  unpack   Decompress packed .md back to full docs");
+  console.log("  inspect  Show contents of a packed .md file");
   console.log("  version  Print current version");
   console.log("");
   console.log("Examples:");
   console.log("  npx sdlc-workflow init      # project-level setup");
   console.log("  npx sdlc-workflow install   # global setup (~/.cursor, ~/.codex, ~/.agents)");
+  console.log("  npx sdlc-workflow pack docs/sdlc/po/docpack/");
+  console.log("  npx sdlc-workflow pack README.md --level 3");
+  console.log("  npx sdlc-workflow unpack docpack.packed.md");
   console.log("  npx sdlc-workflow version");
   process.exit(1);
 }

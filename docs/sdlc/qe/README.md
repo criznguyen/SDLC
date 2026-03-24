@@ -7,10 +7,11 @@
 
 ## Detailed tasks (Docs phase — Phase 5a)
 
-- [ ] **Read Technical BA spec**: API, team breakdown, FRs
+- [ ] **Read packed inputs**: `ba/technical.packed.md` + `design/{epic-slug}.packed.md` (if app/web) — do NOT load individual files
 - [ ] **Test plan**: Scope (unit, integration, E2E), coverage goals, risks
 - [ ] **Test cases**: TC-001, TC-002... — precondition, steps, expected, links to AC
-- [ ] **Handoff to Dev**: Test plan + test cases in `qe/{epic-slug}/` → Dev runs implementation
+- [ ] **Pack output**: `sdlc-workflow pack docs/sdlc/qe/{epic-slug}/` → `qe/{epic-slug}.packed.md`
+- [ ] **Handoff to Dev**: Pass `qe/{epic-slug}.packed.md` → Dev runs implementation
 
 ## Detailed tasks (Testing phase — Phase 6)
 

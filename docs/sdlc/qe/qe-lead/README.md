@@ -13,6 +13,7 @@
 
 ## Detailed tasks
 
+- [ ] **Read packed inputs**: `ba/technical.packed.md` + `qe/{epic-slug}.packed.md` (test plan) + `design/{epic-slug}.packed.md` (if app/web) — do NOT load individual files
 - [ ] **Test automation strategy**: Document scope (unit/integration/E2E/API/performance), pyramid, alignment with tech stack
 - [ ] **Framework ADR**: Choose and justify frameworks (Playwright, Cypress, Jest, etc.); document in ADR
 - [ ] **Automation architecture**: Design folder structure, layers, fixtures, reporting, retries, env handling

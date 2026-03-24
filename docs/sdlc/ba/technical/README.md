@@ -5,10 +5,10 @@ Templates support: HTTP API, library/SDK, CLI, and all project types (see api-sp
 
 ## Detailed tasks
 
-- [ ] **Read Architect outputs**: ADRs, context/container diagrams, tech stack
-- [ ] **Read Design (if app/web)**: design-spec.md + wireframes — design informs API contracts, screen specs
+- [ ] **Read packed inputs**: `architecture.packed.md` + `design/{epic-slug}.packed.md` (if app/web) — do NOT load individual files
 - [ ] **API/interface spec**: For each endpoint/class/command: purpose, request/response, contract (OpenAPI, TS types, CLI help)
 - [ ] **DB schema**: Tables, columns, indexes, constraints; migrations approach
 - [ ] **Team breakdown**: Map scope to teams (Backend, Frontend, Mobile, etc.) per project type; dependencies
 - [ ] **Trace to FRs**: Map technical specs to functional requirements
-- [ ] **Handoff to QE + Dev**: API spec, team breakdown in `ba/technical/`
+- [ ] **Pack output**: `sdlc-workflow pack docs/sdlc/ba/technical/` → `ba/technical.packed.md`
+- [ ] **Handoff to QE + Dev**: Pass `ba/technical.packed.md`
