@@ -270,12 +270,12 @@ Phase 0 → Phase 1 [PO] → Phase 2 [BA] → Phase 3 [UX] → Phase 4 [SA] → 
 
 > [DEV] AND [QE] run simultaneously. Do NOT wait for one to finish before starting the other.
 
-```
+│────
 Technical BA complete
     ├──→ [DEV] implementation (all roles: [FE]/[BE]/[MOBILE]/[EMB]/[DATA]/[PLATFORM])
     └──→ [QE] test plan + test cases
          Both complete → Phase 8
-```
+│────
 
 ---
 
@@ -283,14 +283,14 @@ Technical BA complete
 
 > [QE] + [SEC] + [PERF] audit the same artifact simultaneously.
 
-```
+│────
 [DEV] complete
     ├──→ [QE] test execution
     ├──→ [SEC] security audit          ← ALL IN PARALLEL
     └──→ [PERF] performance audit
               ↓ Merge gate (sequential)
          ✅ QUALITY GATE PASSED → [OPS] Deploy
-```
+│────
 
 ---
 
