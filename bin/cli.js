@@ -252,25 +252,84 @@ globs: docs/sdlc/**/*, **/*.md
 
 # SDLC Workflow
 
-**On idea/feature request:** Trigger full pipeline (PO → … → Deploy). One role per phase; run phases in sequence. (Single agent = simulate by switching role each phase.) See docs/sdlc/SDLC-WORKFLOW.md and docs/sdlc/agents/.
+**On idea/feature request:** Trigger full pipeline continuously through deployment. Do not stop after one phase unless the user asks.
 
 **Memory requirement:** Before executing any new action, recall relevant memories (project context, user preferences, past decisions) to ensure continuity and avoid repeating mistakes.
 
-1. **PO** — PRD, user stories → docs/sdlc/po/{epic-slug}/ (one folder per epic)
-2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/{epic-slug}/ (one folder per epic)
-3. **Design (if app/web)** — Design specs + wireframes → docs/sdlc/design/{epic-slug}/; **PO + BA review** → loop until approved
-4. **Architect** — ADRs, diagrams → docs/sdlc/architecture/
-5. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
-6. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
-7. **Dev** — After docs phase → **run implementation immediately**. Tech Lead (highest model: planning, logic, review) + implementation roles (cost-efficient model: code execution) → docs/sdlc/dev/{role}/
-8. **QE (testing + UAT)** — QE Lead (highest model: strategy, review) + Senior QE (cost-efficient model: test execution) + UAT; **bug-fix loop** (bugs → Dev fix → QE retest) until 0 bugs → docs/sdlc/qe/{epic-slug}/
-9. **Security** — Audit security risk → docs/sdlc/security/
-10. **Principle Engineer** — Audit logic, architecture → docs/sdlc/principle-engineer/
-11. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/ (after Security + PE sign-off; fix → retest → re-audit loop until 0 issues)
-12. **Maintenance** — Monitoring, bug fixes, patches, dependency updates → docs/sdlc/maintenance/
+**Parallel by default, sequential only when required:** If two workstreams do NOT depend on each other's output, they MUST run in parallel.
 
-**Each role runs as a sub-agent.** Design before Architect (UX drives tech). See docs/sdlc/agents/
-Full workflow: docs/sdlc/SDLC-WORKFLOW.md
+---
+
+## Sequential (dependency chain)
+
+Phase 0 → Phase 1 [PO] → Phase 2 [BA] → Phase 3 [UX] → Phase 4 [SA] → Phase 5 Technical [BA]
+
+---
+
+## ⚡ Parallel Track A (Technical BA complete → spawn immediately)
+
+> [DEV] AND [QE] run simultaneously. Do NOT wait for one to finish before starting the other.
+
+```
+Technical BA complete
+    ├──→ [DEV] implementation (all roles: [FE]/[BE]/[MOBILE]/[EMB]/[DATA]/[PLATFORM])
+    └──→ [QE] test plan + test cases
+         Both complete → Phase 8
+```
+
+---
+
+## ⚡ Parallel Track B ([DEV] complete → spawn immediately)
+
+> [QE] + [SEC] + [PERF] audit the same artifact simultaneously.
+
+```
+[DEV] complete
+    ├──→ [QE] test execution
+    ├──→ [SEC] security audit          ← ALL IN PARALLEL
+    └──→ [PERF] performance audit
+              ↓ Merge gate (sequential)
+         ✅ QUALITY GATE PASSED → [OPS] Deploy
+```
+
+---
+
+## Phase sequence
+
+1. **Phase 1** [PO] — PRD, user stories, feasibility → docs/sdlc/po/{epic-slug}/
+2. **Phase 2** [BA] — FRS, NFR, Gherkin, process flows → docs/sdlc/ba/business/{epic-slug}/
+3. **Phase 3** [UX] (if app/web) — Design specs + wireframes; [PO]+[BA] review until approved → docs/sdlc/design/{epic-slug}/
+4. **Phase 4** [SA] — ADRs, C4 diagrams, security by design → docs/sdlc/architecture/
+5. **Phase 5** Technical [BA] — API specs (OpenAPI 3.x), team breakdown → docs/sdlc/ba/technical/
+6. **⚡ Phase 5a** [QE] + **⚡ Phase 5b** [DEV] — parallel after Technical BA
+7. **⚡ Phase 8** [QE] + [SEC] + [PERF] — parallel audits after [DEV] complete → merge gate
+8. **Phase 9** [OPS] — Docker Compose + K8s + IaC → docs/sdlc/deploy/
+9. **Phase 10** — SHIPPED ✅
+10. **Phase 11** Maintenance — monitoring, bug fixes, patches
+
+---
+
+## Quality standards
+
+| Role | Standard |
+|------|----------|
+| [PO] | Every requirement traces to a business KPI |
+| [BA] | Every user story has Gherkin AC + edge case |
+| [UX] | Every screen: WCAG 2.1 AA + mobile-first |
+| [SA] | Every ADR has rationale + trade-off |
+| [DEV] | Every function: docstring + error handling + unit test (100%) |
+| [QE] | 100% branch coverage; ≥3 negative paths per happy path |
+| [SEC] | Zero Critical; High must have mitigation or accepted-risk doc |
+| [PERF] | p95 < 500ms for API; no N+1 queries |
+| [OPS] | Secrets in Vault/SSM; no hardcoded credentials; IaC passes tfsec |
+
+---
+
+## Remediation loop
+
+Every issue must have an Issue ID (e.g. SEC-001). Track: 🔁 CYCLE 1 → 🔁 CYCLE 2 → 🔁 CYCLE 3. Max 3 cycles per issue.
+
+**Each role runs as a sub-agent.** Design before Architect (UX drives tech). See docs/sdlc/SDLC-WORKFLOW.md and docs/sdlc/agents/
 `;
 
 const CURSOR_SKILL_MD = `---
@@ -280,25 +339,28 @@ description: Multi-role SDLC workflow from user requirements through PO, Busines
 
 # SDLC Workflow (Multi-Role)
 
-Sequential workflow; **each role runs as a sub-agent**. Each phase produces docs/artifacts for the next. After completion → deploy with **Docker Compose** and **K8s** (docs/sdlc/deploy/).
+**Parallel by default, sequential only when required.** Each role runs as a sub-agent. Design before Architect (UX drives tech). After docs phase → Dev runs immediately.
 
 ## Trigger and orchestration (mandatory)
 
 **When the user sends an idea, feature request, or new requirement:**
 1. **Recall memory** — Before executing any new action, recall relevant memories (project context, user preferences, past decisions) to ensure continuity and avoid repeating mistakes.
-2. **Trigger the pipeline** and run it **continuously through deployment** (Phase 1 → 2 → … → 7).
-3. **One role per phase.** For each phase, act **only** as that role (e.g. only PO in phase 1, only Business BA in phase 2). Produce that phase's outputs into the correct folder, then **continue to the next phase** without waiting for the user.
-3. **Run in order:** PO → Business BA → **Design (if app/web, PO+BA review loop)** → Architect → Technical BA → QE (docs) → Dev → QE (testing + UAT) → **QE bug-fix loop until 0 bugs → Security + Principle Engineer audit → fix → retest → re-audit loop until 0 issues** → Deploy → Maintenance. Do not stop after one phase unless the user explicitly asks to stop.
+2. **Trigger the pipeline** and run it **continuously through deployment**.
+3. **One role per phase** for sequential phases. **Spawn parallel workstreams** when dependencies are independent.
 
-**Note:** In Cursor and similar tools there is a single agent per conversation. "Sub-agent" means **one role per phase** — the same agent must adopt exactly one role per phase and run phases in sequence (do not mix roles in one step). If the platform later supports spawning separate agents per phase, use that; otherwise this single agent simulates the pipeline by switching role each phase.
+**Parallel tracks:**
+- Track A (after Technical BA): [DEV] implementation + [QE] test plan — run SIMULTANEOUSLY
+- Track B (after Dev complete): [QE] + [SEC] + [PERF] audits — run SIMULTANEOUSLY
+
+**Note:** In Cursor there is a single agent per conversation. Adopt one role per sequential phase; spawn parallel tasks for Track A and Track B.
 
 **Sub-agent specs**: docs/sdlc/agents/
 
 ## Flow Overview
 
-\`\`\`
-User Request → PO → Business BA → Design (if app/web) → Architect → Technical BA → QE (docs) → Dev → QE (testing + UAT) → [bug-fix loop until 0 bugs] → Security + PE audit → [fix → retest → re-audit loop until 0 issues] → Deploy → Maintenance
-\`\`\`
+Sequential: Phase 0 → Phase 1 [PO] → Phase 2 [BA] → Phase 3 [UX] → Phase 4 [SA] → Phase 5 Technical [BA]
+Parallel Track A: Technical BA complete → [DEV] + [QE] simultaneously
+Parallel Track B: Dev complete → [QE] + [SEC] + [PERF] simultaneously → merge gate → [OPS] Deploy
 
 **Determine current phase** before acting. If user sent an idea, assume Phase 0 and start from Phase 1.
 
@@ -353,48 +415,39 @@ User Request → PO → Business BA → Design (if app/web) → Architect → Te
 
 **Role**: Create test plan, test cases before Dev implements.
 **Deliverables**: Test plan, test cases.
-**Output**: \`docs/sdlc/qe/{epic-slug}/\` — **one folder per epic** (same slug as PO/BA). Test plan, test cases inside. Do not put all epics in one file. After docs phase → **Dev team runs implementation immediately** (no extra gate).
+**Output**: \`docs/sdlc/qe/{epic-slug}/\` — **one folder per epic** (same slug as PO/BA).
+**⚡ Parallel with Phase 5b**: [DEV] starts implementation immediately after Technical BA — do NOT wait for QE docs to finish.
 
 ## Phase 5b: Dev Teams
 
-**Trigger**: After docs are done (Technical BA + QE docs). **Dev runs implementation immediately.**
+**Trigger**: After Technical BA is complete (not after QE docs). **Dev runs implementation immediately.**
+**⚡ Parallel with Phase 5a**: [DEV] AND [QE] test plan run simultaneously.
 
-**Roles** (vary by project — use only what applies; see \`docs/sdlc/dev/implementation-roles.template.md\`). All implementation roles are **Senior (10+ yrs)**:
-- **Tech Lead (15+ yrs)** — **highest model** (e.g. Opus): Planning, logic analysis, architecture decisions, tech stack, code review & merge. Docs: \`docs/sdlc/dev/tech-lead/\`
-- **Senior Developer (10+ yrs)** — **cost-efficient model** (e.g. Haiku): Implement per Tech Lead's spec. Docs: \`docs/sdlc/dev/senior-developer/\`
-- **Senior Frontend (10+ yrs)**: Web UI. Docs: \`docs/sdlc/dev/frontend/\`
-- **Senior Backend (10+ yrs)**: API, services. Docs: \`docs/sdlc/dev/backend/\`
-- **Senior Mobile (10+ yrs)**: iOS/Android/cross-platform. Docs: \`docs/sdlc/dev/mobile/\`
-- **Senior Embedded (10+ yrs)**: Firmware, IoT. Docs: \`docs/sdlc/dev/embedded/\`
-- **Senior Data/ML (10+ yrs)**: ETL, models. Docs: \`docs/sdlc/dev/data-ml/\`
-- **Senior Platform (10+ yrs)**: Infra, CI/CD. Docs: \`docs/sdlc/dev/platform/\`
+**Roles** (vary by project — use only what applies). All implementation roles are **Senior (10+ yrs)**:
+- **Tech Lead (15+ yrs)** — **highest model** (e.g. Opus): Planning, logic analysis, architecture decisions, tech stack, code review & merge.
+- **Senior Frontend (10+ yrs)**: Web UI.
+- **Senior Backend (10+ yrs)**: API, services, DB.
+- **Senior Mobile (10+ yrs)**: iOS/Android/cross-platform.
+- **Senior Embedded (10+ yrs)**: Firmware, IoT.
+- **Senior Data/ML (10+ yrs)**: ETL, models, analytics.
+- **Senior Platform (10+ yrs)**: CI/CD, infra.
 
-**Model optimization**: Tech Lead uses the **highest-tier model** (e.g. Claude Opus) for planning, architecture decisions, logic analysis, and code review. Implementation roles use a **cost-efficient model** (e.g. Claude Haiku) to execute code from Tech Lead's specs. This maximizes quality on critical thinking while reducing cost on execution.
+**⚡ All implementation roles run in parallel** — frontend does NOT wait for backend; they coordinate via API contract from Technical BA.
 
 **Requirements**: Unit Test coverage **100%** (TDD/BDD); Clean Code, SOLID, DRY, KISS, SoC, POLS.
+**Output**: Code + unit tests. **Handoff to Phase 8.**
 
-**Output**: Code + unit tests. **Handoff to QE (testing + UAT).**
+## Phase 8: [QE] + [SEC] + [PERF] Quality Gates (⚡ fully parallel audits)
 
-## Phase 6: QE (Testing phase — automation + UAT) → bug-fix loop
+**Trigger**: After Dev completes implementation (code + 100% coverage).
+**⚡ All three audits run SIMULTANEOUSLY on the same artifact.** Do NOT wait for one to finish before starting another.
 
-**Trigger**: After Dev completes unit tests.
-**Role**: Write and run **automation tests** + **UAT**, sign-off.
+- **[QE]**: Execute all test suites, enforce 100% coverage gate, report bugs (QE-001...).
+- **[SEC]**: OWASP Top 10, STRIDE threat model, CVE scan, compliance (GDPR/PCI/SOC2). Report: SEC-001...
+- **[PERF]**: Latency benchmarks (p95<500ms), N+1 detection, k6 load test. Report: PERF-001...
 
-**Roles**:
-- **QE Lead (15+ yrs automation)** — **highest model** (e.g. Opus): Test strategy, framework choice, automation architecture, review test code. Output per epic: \`docs/sdlc/qe/{epic-slug}/\`
-- **Senior QE (10+ yrs)** — **cost-efficient model** (e.g. Haiku): Write automation tests per QE Lead's strategy. Output per epic: \`docs/sdlc/qe/{epic-slug}/\` (e.g. automation/ or test files there)
-- **UAT**: Verify implementation against original user stories and acceptance criteria from PO.
-
-**Bug-fix loop**: If QE finds bugs or test failures → **Dev fixes** → **QE retests**. **Repeat until all tests pass and UAT approved (0 open bugs).** Only then → **Handoff to Security + Principle Engineer.**
-
-## Phase 8: Security + Principle Engineer (audit → fix → retest → re-audit loop)
-
-**Trigger**: After QE testing sign-off (0 open bugs).
-**Roles** (can run in parallel):
-- **Security team**: Audit security risk (OWASP, auth, secrets, infra). Output: \`docs/sdlc/security/\`
-- **Principle Engineer**: Audit logic, architecture alignment, correctness. Output: \`docs/sdlc/principle-engineer/\`
-
-**Fix → retest → re-audit loop**: If issues/vulnerabilities found → **Dev fixes** → **QE retests** (verify fix, no regression) → **Security + PE re-audit**. **Repeat until 0 issues/vulnerabilities remain.** Only when sign-off → **Handoff to Deploy.**
+**Merge gate**: Collect all findings from all three. If Critical/High → 🔁 REMEDIATION LOOP → [DEV] fix → [QE] retest → re-audit. Max 3 cycles per issue.
+**Quality Gate PASSED** → [OPS] Deploy.
 
 ## Phase 9: Deploy
 
@@ -425,12 +478,23 @@ See reference.md for templates.
 
 const CURSOR_REFERENCE_MD = `# SDLC Workflow — Reference
 
-## Folder structure: one per epic/feature (PO and Business BA)
+## Execution model
+
+**Parallel by default, sequential only when required.**
+
+| Decision | Rule |
+|----------|------|
+| Sequential phases | Phase 0 → 1 → 2 → 3 → 4 → 5 Technical BA |
+| Track A (after Technical BA) | [DEV] + [QE] run SIMULTANEOUSLY — do NOT wait |
+| Dev parallel roles | [FE] + [BE] + [MOBILE] + [EMB] + [DATA] + [PLATFORM] all run simultaneously |
+| Track B (after Dev complete) | [QE] + [SEC] + [PERF] run SIMULTANEOUSLY — merge gate only after all report |
+
+## Folder structure: one per epic/feature
 
 - **PO**: \`docs/sdlc/po/{epic-slug}/\` — one folder per epic. Files: epic-brief.md, user-stories.md. Do not put all epics in one file.
 - **Business BA**: \`docs/sdlc/ba/business/{epic-slug}/\` — same slug as PO. Files: functional-requirements.md, process-flows.md. Do not merge all epics into one file.
 - **Design (if app/web)**: \`docs/sdlc/design/{epic-slug}/\` — same slug as PO/BA. Design specs (Markdown) + optional HTML wireframes; PO+BA review until approved.
-- **QE**: \`docs/sdlc/qe/{epic-slug}/\` — same slug as PO/BA. Files: test-plan.md, test-cases.md, automation artifacts. Do not put all epics in one file.
+- **QE**: \`docs/sdlc/qe/{epic-slug}/\` — same slug as PO/BA. Files: test-plan.md, test-cases.md, automation. Do not put all epics in one file.
 
 ## PO: Epic Brief Template
 # Epic: [Name]
@@ -460,13 +524,14 @@ TC-001: [Scenario] — Precondition, Steps, Expected, Links to AC
 - Senior Dev (10+ yrs) — **cost-efficient model** (e.g. Haiku): execute code from Tech Lead specs, Unit Test 100% → docs/sdlc/dev/senior-developer/
 - By project (all Senior 10+ yrs, cost-efficient model): Senior Frontend, Backend, Mobile, Embedded, Data/ML, Platform → docs/sdlc/dev/{role}/
 
-## Security + Principle Engineer (after implementation)
-- Security team: audit security risk → docs/sdlc/security/
-- Principle Engineer: audit logic, architecture → docs/sdlc/principle-engineer/
-- **Fix loop**: If issues → Dev fixes → QE retests → re-audit; repeat until 0 issues. Sign-off → Deploy
+## Security + Principle Engineer + Performance (after implementation)
+- Security team [SEC]: OWASP Top 10, STRIDE, CVE, compliance → docs/sdlc/security/
+- Principle Engineer [PE]: logic, architecture → docs/sdlc/principle-engineer/
+- Performance Auditor [PERF]: p95<500ms, N+1, k6 → docs/sdlc/security/
+- **Remediation loop**: Every issue has ID (SEC-001, PERF-003...). 🔁 CYCLE 1 → 2 → 3. Max 3 per issue.
 
 ## Deploy
-After Security + Principle Engineer sign-off → Docker Compose + K8s. See docs/sdlc/deploy/
+After all Phase 8 issues resolved → Docker Compose + K8s + IaC. See docs/sdlc/deploy/
 
 ## Maintenance
 After Deploy → ongoing: monitoring, bug fixes, patches, dependency updates, performance tuning. Significant new features → loop back to PO for new epic. See docs/sdlc/maintenance/
@@ -474,25 +539,24 @@ After Deploy → ongoing: monitoring, bug fixes, patches, dependency updates, pe
 
 const AGENTS_MD_CONTENT = `## SDLC Workflow
 
-**Trigger:** When the user sends an **idea**, **feature request**, or **requirement**, run the full pipeline (Phase 1 → 7) in sequence. One role (sub-agent) per phase; produce outputs then continue to the next. Do not stop after one phase until deployment unless the user asks to stop.
+**Trigger:** When the user sends an **idea**, **feature request**, or **requirement**, run the full pipeline continuously through deployment. Do not stop after one phase unless the user asks.
 
 **Memory requirement:** Before executing any new action, recall relevant memories (project context, user preferences, past decisions) to ensure continuity and avoid repeating mistakes.
 
-When working on requirements, features, or handoffs, follow these phases:
+**Parallel by default, sequential only when required.**
 
-1. **PO** — PRD, user stories → docs/sdlc/po/{epic-slug}/ (one folder per epic)
-2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/{epic-slug}/ (one folder per epic)
-3. **Design (if app/web)** — Design specs + wireframes (**Anti AI**: no AI-looking designs) → docs/sdlc/design/{epic-slug}/; **PO + BA review** until approved
-4. **Architect** — ADRs, diagrams → docs/sdlc/architecture/
-5. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
-6. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
-7. **Dev** — After docs phase → **run implementation immediately**. Tech Lead (highest model: planning, logic, review) + Senior Dev (cost-efficient model: code execution) → docs/sdlc/dev/{role}/
-8. **QE (testing + UAT)** — QE Lead (highest model: strategy, review) + Senior QE (cost-efficient model: test execution) + UAT; **bug-fix loop** (bugs → Dev fix → QE retest) until 0 bugs → docs/sdlc/qe/{epic-slug}/ (same folder per epic)
-9. **Security + Principle Engineer** — Security + logic audit; **fix → retest → re-audit loop** (Dev fixes → QE retests → re-audit) until 0 issues; sign-off before Deploy
-10. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
-11. **Maintenance** — Monitoring, bug fixes, patches, dependency updates → docs/sdlc/maintenance/
+1. **Phase 1** [PO] — PRD, user stories, feasibility → docs/sdlc/po/{epic-slug}/
+2. **Phase 2** [BA] — FRS, NFR, Gherkin, process flows → docs/sdlc/ba/business/{epic-slug}/
+3. **Phase 3** [UX] (if app/web) — Design specs + wireframes; [PO]+[BA] review until approved → docs/sdlc/design/{epic-slug}/
+4. **Phase 4** [SA] — ADRs, C4 diagrams, security by design → docs/sdlc/architecture/
+5. **Phase 5** Technical [BA] — API specs (OpenAPI 3.x), team breakdown → docs/sdlc/ba/technical/
+6. **⚡ Phase 5a** [QE] + **⚡ Phase 5b** [DEV] — parallel after Technical BA
+7. **⚡ Phase 8** [QE] + [SEC] + [PERF] — parallel audits after [DEV] complete → merge gate
+8. **Phase 9** [OPS] — Docker Compose + K8s + IaC → docs/sdlc/deploy/
+9. **Phase 10** — SHIPPED ✅
+10. **Phase 11** Maintenance — monitoring, bug fixes, patches
 
-Design before Architect (UX drives tech). After the docs phase, the Dev team runs implementation immediately. See docs/sdlc/agents/
+Design before Architect (UX drives tech). After Technical BA, [DEV] runs immediately — parallel with [QE] docs. See docs/sdlc/agents/
 `;
 
 const CLAUDE_SDLC_CONTENT = `## SDLC Workflow
@@ -501,19 +565,23 @@ const CLAUDE_SDLC_CONTENT = `## SDLC Workflow
 
 **Memory requirement:** Before executing any new action, recall relevant memories (project context, user preferences, past decisions) to ensure continuity and avoid repeating mistakes.
 
-1. **PO** — PRD, user stories, feasibility assessment → docs/sdlc/po/{epic-slug}/ (one folder per epic)
-2. **Business BA** — FRS, NFR, process flows → docs/sdlc/ba/business/{epic-slug}/ (one folder per epic)
-3. **Design (if app/web)** — Design specs + wireframes (**Anti AI**: no AI-looking designs) → docs/sdlc/design/{epic-slug}/; **PO + BA review** until approved
-4. **Architect** — ADRs, diagrams, security by design, engineering principles (SOLID, DRY, KISS, CQRS, Zero Trust, EDA, HA) → docs/sdlc/architecture/
-5. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
-6. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
-7. **Dev** — After docs phase → **run implementation immediately**. Tech Lead (highest model: planning, logic, review) + Senior Dev (cost-efficient model: code execution) → docs/sdlc/dev/{role}/. Clean Code, SOLID, DRY, KISS, TDD/BDD. Security shift-left: OWASP checks, dependency audit in CI
-8. **QE (testing + UAT)** — QE Lead (highest model: strategy, review) + Senior QE (cost-efficient model: test execution) + UAT; **bug-fix loop** (bugs → Dev fix → QE retest) until 0 bugs → docs/sdlc/qe/{epic-slug}/ (same folder per epic)
-9. **Security + Principle Engineer** — Security + logic audit; **fix → retest → re-audit loop** (Dev fixes → QE retests → re-audit) until 0 issues; sign-off before Deploy
-10. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/
-11. **Maintenance** — Monitoring, bug fixes, patches, dependency updates → docs/sdlc/maintenance/
+**Parallel by default, sequential only when required:** If two workstreams do NOT depend on each other's output, they MUST run in parallel.
 
-Design before Architect (UX drives tech). After the docs phase, Dev runs implementation immediately. See docs/sdlc/agents/
+1. **PO** — PRD, user stories, feasibility assessment → docs/sdlc/po/{epic-slug}/ (one folder per epic)
+2. **Business BA** — FRS, NFR, Gherkin, process flows → docs/sdlc/ba/business/{epic-slug}/ (one folder per epic)
+3. **Design (if app/web)** — Design specs + wireframes (**Anti AI**: no AI-looking designs) → docs/sdlc/design/{epic-slug}/; **PO + BA review** until approved
+4. **Architect** — ADRs, C4 diagrams, security by design, engineering principles (SOLID, DRY, KISS, CQRS, Zero Trust, EDA, HA) → docs/sdlc/architecture/
+5. **Technical BA** — API specs (OpenAPI 3.x), team breakdown → docs/sdlc/ba/technical/
+6. **⚡ Phase 5a [QE]** + **⚡ Phase 5b [DEV]** — run in PARALLEL after Technical BA:
+   - [QE]: test plan + test cases → docs/sdlc/qe/{epic-slug}/ (100% coverage target)
+   - [DEV]: code + unit tests (100%) → docs/sdlc/dev/{role}/ — start immediately, do NOT wait for QE docs
+7. **⚡ Phase 8** — [QE] + [SEC] + [PERF] audit SIMULTANEOUSLY after Dev complete:
+   - Bug-fix loop → [DEV] fix → [QE] retest until 0 bugs
+   - 🔁 Remediation loop: issue ID per finding, max 3 cycles, until 0 Critical/High issues
+8. **Deploy** — Docker Compose + K8s + IaC → docs/sdlc/deploy/ (after all Phase 8 issues resolved)
+9. **Maintenance** — Monitoring, bug fixes, patches, dependency updates → docs/sdlc/maintenance/
+
+Design before Architect (UX drives tech). After Technical BA, Dev runs immediately — parallel with QE docs. See docs/sdlc/agents/
 `;
 
 const SDLC_WORKFLOW_MD = `# SDLC Workflow (Multi-Role)
@@ -615,134 +683,253 @@ User Request → PO → Business BA → Design (if app/web) → Architect → Te
 See [reference.md](./reference.md) for templates.
 `;
 
-const ORCHESTRATION_MD = `# Pipeline orchestration
+const ORCHESTRATION_MD = `# Pipeline Orchestration
 
 ## Trigger
 
-When the user sends an **idea**, **feature request**, or **requirement** (e.g. "I want a login page", "We need an API for X"):
-
-1. **Trigger the full pipeline** and run **Phase 1 → 2 → … → 11 in sequence**.
-2. **One role per phase:** For each phase, act only as that role, write outputs to the correct \`docs/sdlc/...\` folder, then **continue to the next phase** without asking the user to "run next step".
+When the user sends an **idea**, **feature request**, or **requirement**:
+1. **Trigger the full pipeline** and run continuously through deployment.
+2. **One role per phase** for sequential phases. **Spawn parallel workstreams** when dependencies are independent.
 3. **Run through to Maintenance.** Do not stop after PO, BA, or Dev unless the user explicitly says to stop.
 
-## How it runs (Cursor and similar)
+## 🚦 The Orchestrator's Most Important Rule
 
-There is **one agent** per conversation. It simulates the pipeline by **adopting one role per phase** in order: Phase 1 as PO only → Phase 2 as Business BA only → … → Phase 11 as Maintenance. Do not mix roles in one step. If the tool later supports separate agents per phase, use that; otherwise this single-agent simulation is correct.
+> **Parallel by default. Sequential only when required.**
+
+Before running any two workstreams, ask: "Does workstream B depend on workstream A's output?"
+- **Yes** → Run sequentially (A first, then B)
+- **No** → **Run in parallel immediately**
+
+## Execution Map
+
+Sequential: Phase 0 → Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 Technical BA
+Parallel Track A: Technical BA complete → [DEV] + [QE] simultaneously
+Parallel Track B: Dev complete → [QE] + [SEC] + [PERF] simultaneously → merge gate → [OPS] Deploy
 
 ## Checklist per run
 
-- [ ] Phase 1 PO: artifacts in \`docs/sdlc/po/{epic-slug}/\` (one folder per epic)
-- [ ] Phase 2 Business BA: \`docs/sdlc/ba/business/{epic-slug}/\` (one folder per epic)
-- [ ] Phase 3 Design (if app/web): design specs + wireframes in \`docs/sdlc/design/{epic-slug}/\`; PO+BA review until approved
-- [ ] Phase 4 Architect: \`docs/sdlc/architecture/\`
-- [ ] Phase 5 Technical BA: \`docs/sdlc/ba/technical/\`
-- [ ] Phase 6 QE docs: \`docs/sdlc/qe/{epic-slug}/\` (one folder per epic)
-- [ ] Phase 7 Dev: code + unit tests, \`docs/sdlc/dev/\`
-- [ ] Phase 8 QE testing + UAT: automation, UAT; **bug-fix loop** (bugs → Dev fix → QE retest) until 0 open bugs → \`docs/sdlc/qe/{epic-slug}/\`
-- [ ] Phase 9 Security + Principle Engineer: audit → **fix → retest → re-audit loop** until 0 issues/vulnerabilities; sign-off → \`docs/sdlc/security/\`, \`docs/sdlc/principle-engineer/\`
-- [ ] Phase 10 Deploy: \`docs/sdlc/deploy/\`, Docker Compose + K8s
-- [ ] Phase 11 Maintenance: monitoring, bug fixes, patches, dependency updates → \`docs/sdlc/maintenance/\`
+### Sequential phases
+- [ ] Phase 0 Discovery: raw request captured
+- [ ] Phase 1 [PO]: artifacts in \`docs/sdlc/po/{epic-slug}/\`
+- [ ] Phase 2 [BA]: \`docs/sdlc/ba/business/{epic-slug}/\`
+- [ ] Phase 3 [UX] (if app/web): \`docs/sdlc/design/{epic-slug}/\`; [PO]+[BA] review until approved
+- [ ] Phase 4 [SA]: \`docs/sdlc/architecture/\`
+- [ ] Phase 5 Technical [BA]: \`docs/sdlc/ba/technical/\`
+
+### ⚡ Parallel Track A (spawn immediately after Phase 5)
+- [ ] Spawn [DEV] implementation (all roles: [FE]/[BE]/[MOBILE]/[EMB]/[DATA]/[PLATFORM])
+- [ ] Spawn [QE] test plan + test cases in parallel
+- [ ] Do NOT wait for one to finish before starting the other
+
+### ⚡ Parallel Track B (spawn when [DEV] is complete)
+- [ ] Spawn [QE] test execution
+- [ ] Spawn [SEC] security audit
+- [ ] Spawn [PERF] performance audit
+- [ ] All three run simultaneously — merge gate only after all complete
+
+### Post-merge
+- [ ] Phase 9 [OPS]: \`docs/sdlc/deploy/\`
+- [ ] Phase 10: Project Completion Package → SHIPPED ✅
+- [ ] Phase 11 Maintenance
 `;
 
 const REFERENCE_MD = `# SDLC Workflow — Reference
 
-Templates and examples. Use \`*.template.md\` as starting points.
-Templates are written for all project types: web, mobile, API-only, library/SDK, CLI, data/ML, platform/infra.
-Sub-agents: docs/sdlc/agents/
-Deploy: docs/sdlc/deploy/ (Docker Compose + K8s)
+## Execution model
+
+**Parallel by default, sequential only when required.**
+
+| Decision | Rule |
+|----------|------|
+| Sequential phases | Phase 0 → 1 → 2 → 3 → 4 → 5 Technical BA |
+| Track A (after Technical BA) | [DEV] + [QE] run SIMULTANEOUSLY |
+| Dev parallel roles | [FE] + [BE] + [MOBILE] + [EMB] + [DATA] + [PLATFORM] all simultaneously |
+| Track B (after Dev complete) | [QE] + [SEC] + [PERF] run SIMULTANEOUSLY — merge gate after all report |
 
 ## Folder structure: one per epic/feature
 
 - **PO**: \`docs/sdlc/po/{epic-slug}/\` — one folder per epic. Files: epic-brief.md, user-stories.md. Do not put all epics in one file.
 - **Business BA**: \`docs/sdlc/ba/business/{epic-slug}/\` — same slug as PO. Files: functional-requirements.md, process-flows.md. Do not merge all epics into one file.
-- **Design (if app/web)**: \`docs/sdlc/design/{epic-slug}/\` — design specs (Markdown) + optional HTML wireframes; PO+BA review until approved.
+- **Design (if app/web)**: \`docs/sdlc/design/{epic-slug}/\` — same slug as PO/BA. Design specs (Markdown) + optional HTML wireframes; PO+BA review until approved.
 - **QE**: \`docs/sdlc/qe/{epic-slug}/\` — same slug as PO/BA. Files: test-plan.md, test-cases.md, automation. Do not put all epics in one file.
-- **Security**: \`docs/sdlc/security/\` — security audit; fix → retest → re-audit loop until 0 issues
-- **Principle Engineer**: \`docs/sdlc/principle-engineer/\` — logic audit; fix → retest → re-audit loop until 0 issues
-- **Maintenance**: \`docs/sdlc/maintenance/\` — monitoring, bug fixes, patches, runbooks
+
+## Quality standards
+
+| Role | Standard |
+|------|----------|
+| [PO] | Every requirement traces to a business KPI |
+| [BA] | Every user story has Gherkin AC + edge case |
+| [UX] | Every screen: WCAG 2.1 AA + mobile-first |
+| [SA] | Every ADR has rationale + trade-off |
+| [DEV] | Every function: docstring + error handling + unit test (100%) |
+| [QE] | 100% branch coverage; ≥3 negative paths per happy path |
+| [SEC] | Zero Critical; High must have mitigation or accepted-risk doc |
+| [PERF] | p95 < 500ms for API; no N+1 queries |
+| [OPS] | Secrets in Vault/SSM; no hardcoded credentials; IaC passes tfsec |
+
+## Remediation loop
+
+Every issue must have an Issue ID (e.g. SEC-001). Track: 🔁 CYCLE 1 → 🔁 CYCLE 2 → 🔁 CYCLE 3. Max 3 cycles per issue.
 `;
 
 const AGENTS_README = `# Sub-Agents
 
 Every role in the SDLC runs as a **sub-agent**. Each phase is assigned to a corresponding sub-agent.
+**Role badges are mandatory** — every artifact must identify which \`[ROLE]\` produced it.
 
-| Role | Sub-agent | Input | Output |
-|------|-----------|--------|--------|
-| PO | po | User request | docs/sdlc/po/{epic-slug}/ (one folder per epic) |
-| Business BA | business-ba | docs/sdlc/po/{epic-slug}/ | docs/sdlc/ba/business/{epic-slug}/ (one folder per epic) |
-| Design (if app/web) | design | docs/sdlc/po + docs/sdlc/ba/business/ | docs/sdlc/design/{epic-slug}/; PO+BA review until approved |
-| Architect | architect | docs/sdlc/ba/business/ + design (if any) | docs/sdlc/architecture/ |
-| Technical BA | technical-ba | docs/sdlc/architecture/ + design (if any) | docs/sdlc/ba/technical/ |
-| QE (docs) | qe-docs | docs/sdlc/ba/technical/ (+ design if any) | docs/sdlc/qe/{epic-slug}/ (one folder per epic) |
-| Tech Lead | tech-lead | Technical spec | Review, merge, docs/sdlc/dev/tech-lead/ |
-| Senior Dev | senior-dev | Spec + test plan | After docs → run implementation immediately. Code, unit tests (100%) |
-| Senior Frontend | frontend | UI spec, API contract | Web UI, docs/sdlc/dev/frontend/ |
-| Senior Backend | backend | API spec, DB schema | API, services, docs/sdlc/dev/backend/ |
-| Senior Mobile | mobile | API contract, design | App (iOS/Android), docs/sdlc/dev/mobile/ |
-| Senior Embedded | embedded | HW/spec, interfaces | Firmware, IoT, docs/sdlc/dev/embedded/ |
-| Senior Data/ML | data-ml | Data spec, models | ETL, models, docs/sdlc/dev/data-ml/ |
-| Senior Platform | platform | Infra spec | CI/CD, observability, docs/sdlc/dev/platform/ |
-| QE Lead | qe-lead | Test plan | 15+ yrs automation: strategy, framework, review → docs/sdlc/qe/{epic-slug}/ |
-| Senior QE | senior-qe | Test plan + framework | Automation tests → docs/sdlc/qe/{epic-slug}/ |
-| Security | security | Code, infra | Security audit → docs/sdlc/security/; fix → retest → re-audit loop until 0 issues |
-| Principle Engineer | principle-engineer | Code, architecture | Logic audit → docs/sdlc/principle-engineer/; fix → retest → re-audit loop until 0 issues |
-| Deploy | deploy | Security + PE sign-off (after 0 issues) | Docker Compose + K8s, docs/sdlc/deploy/ |
-| Maintenance | maintenance | Live application | Monitoring, bug fixes, patches, docs/sdlc/maintenance/ |
+## 🚦 Parallel vs Sequential Orchestrator Rules
 
-Orchestrator: run each sub-agent in order; hand off output → input of the next sub-agent.
+**The cardinal rule:** If two workstreams do NOT depend on each other's output, they MUST run in parallel.
 
-**Trigger:** On user idea/request, run the full pipeline (see docs/sdlc/ORCHESTRATION.md). One role per phase; single agent simulates by switching role each phase. Do not stop after one phase until Deploy unless the user asks.
+### Sequential (mandatory — dependency chain)
+
+Phase 0 → Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 Technical BA
+Each phase's output is the next phase's input. Skipping or reordering causes rework.
+
+### Parallel: Track A — Implementation + Test Plan
+
+> **Spawn immediately when Technical BA completes.** Do NOT wait for one to finish before starting the other.
+
+Technical BA complete → [DEV] implementation + [QE] test plan run SIMULTANEOUSLY.
+All implementation roles ([FE]/[BE]/[MOBILE]/[EMB]/[DATA]/[PLATFORM]) also run in parallel.
+
+### Parallel: Track B — Quality Gates
+
+> **Spawn immediately when [DEV] is complete.** All three agents audit the same artifact simultaneously.
+
+[DEV] complete → [QE] + [SEC] + [PERF] run SIMULTANEOUSLY → merge gate → Deploy.
+
+### Remediation Loop
+
+Every issue must have an Issue ID (e.g. SEC-001). Track: 🔁 CYCLE 1 → 🔁 CYCLE 2 → 🔁 CYCLE 3. Max 3 cycles per issue.
+
+## Role Sub-Agent Table
+
+| Role | Input | Output | Parallel? |
+|------|-------|--------|-----------|
+| [PO] | User request | docs/sdlc/po/{epic-slug}/ | Sequential |
+| [BA] | PO output | docs/sdlc/ba/business/{epic-slug}/ | Sequential |
+| [UX] | BA output | docs/sdlc/design/{epic-slug}/ | Sequential |
+| [SA] | BA + UX | docs/sdlc/architecture/ | Sequential |
+| [BA] Tech | SA output | docs/sdlc/ba/technical/ | Sequential |
+| [DEV] | Tech BA | docs/sdlc/dev/{role}/ | ⚡ Parallel with [QE] |
+| [QE] | Tech BA | docs/sdlc/qe/{epic-slug}/ | ⚡ Parallel with [DEV] |
+| [QE]+[SEC]+[PERF] | Dev output | TER, SAR, PAR | ⚡ Fully parallel |
+| [OPS] | All Phase 8 passed | docs/sdlc/deploy/ | Sequential |
+
+## Quality Standards
+
+| Role | Standard |
+|------|----------|
+| [PO] | Every requirement traces to a business KPI |
+| [BA] | Every user story has Gherkin AC + edge case |
+| [UX] | Every screen: WCAG 2.1 AA + mobile-first |
+| [SA] | Every ADR has rationale + trade-off |
+| [DEV] | Every function: docstring + error handling + unit test (100%) |
+| [QE] | 100% branch coverage; ≥3 negative paths per happy path |
+| [SEC] | Zero Critical; High must have mitigation or accepted-risk doc |
+| [PERF] | p95 < 500ms for API; no N+1 queries |
+| [OPS] | Secrets in Vault/SSM; no hardcoded credentials; IaC passes tfsec |
+
+## Response Format (Mandatory)
+
+\`\`\`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🏢 APEX — [PHASE NAME] | [ROLE BADGE]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 INPUT RECEIVED
+[What was received from previous phase or business]
+
+🔄 PROCESSING
+[Current role's analysis/work]
+
+📤 OUTPUT ARTIFACT: [Artifact Name]
+[Full artifact content]
+
+🚦 GATE STATUS
+[ ] Pending review     [✅] Approved     [🔴] Blocked — reason: ...
+
+⏭️ NEXT ACTION
+[What triggers next, which role activates, what they need]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+\`\`\`
+
+See docs/sdlc/SDLC-WORKFLOW.md for full phase details.
 `;
 
-const SECURITY_README = `# Security Team
+const SECURITY_README = `# Security Team | [SEC]
 
-**When:** After implementation (Dev) and QE testing (0 open bugs). **Before** Deploy.
+**When:** After [QE] quality gate passed (0 open bugs + 100% coverage). Runs **parallel** with [PERF] audit. **Before** Deploy.
 
-**Role:** Audit security risk in code, APIs, infra, and configuration. Identify vulnerabilities and recommend mitigations.
+**Quality Standard:** Zero tolerance for Critical severity. High must have documented mitigation or accepted-risk doc.
 
-**Fix → retest → re-audit loop:** If issues/vulnerabilities found → **Dev fixes** → **QE retests** (verify fix, no regression) → **Security re-audit**. Repeat until 0 issues/vulnerabilities remain; then sign-off to Deploy.
+## Detailed Tasks
 
-## Detailed tasks
+- [ ] **OWASP Top 10 checklist:** A01 Broken Access Control → A10 SSRF
+- [ ] **STRIDE threat model:** Spoofing, Tampering, Repudiation, Information Disclosure, DoS, Elevation of Privilege
+- [ ] **SAST findings:** Static analysis (Semgrep, SonarQube, Bandit)
+- [ ] **CVE scan:** npm audit / pip audit / trivy
+- [ ] **Auth/Authorization review:** JWT, sessions, RBAC
+- [ ] **Secrets management:** No hardcoded credentials; verify Vault/SSM
+- [ ] **Compliance notes:** GDPR / PCI-DSS / SOC2 / HIPAA (activate per project type)
 
-- [ ] **Read implementation**: Code, API specs, infra configs (docker-compose, k8s)
-- [ ] **Security audit**: OWASP Top 10, auth/authz, injection, XSS, CSRF, secrets exposure, dependency vulns
-- [ ] **Infra/ops security**: Network, TLS, RBAC, secrets management
-- [ ] **Report**: Findings, severity, remediation; output to \`docs/sdlc/security/\`
-- [ ] **Fix → retest → re-audit loop**: If issues found → Dev fixes → **QE retests** (confirm fix, no regression) → Security re-audit. **Repeat until 0 issues/vulnerabilities remain**; then sign-off to Deploy.
+## Issue Tracking
+
+Issue ID (SEC-001...), Severity (Critical/High/Medium/Low), Status, Owner, Mitigation.
+
+## Merge Gate
+
+Critical → 🔴 BLOCK. High without mitigation → 🔴 BLOCK. High with accepted-risk → ⚠️ CONDITIONAL.
+
+See docs/sdlc/SDLC-WORKFLOW.md for full audit details.
 `;
 
 const PRINCIPLE_ENGINEER_README = `# Principle Engineer
 
-**When:** After implementation (Dev) and QE testing (0 open bugs). **Before** Deploy.
+**When:** After [QE] quality gate passed. Runs **parallel** with [SEC] + [PERF]. **Before** Deploy.
 
-**Role:** Audit logic, architecture alignment, design decisions, and technical quality. Ensure correctness and consistency with specs.
+## Detailed Tasks
 
-**Fix → retest → re-audit loop:** If issues found → **Dev fixes** → **QE retests** (verify fix, no regression) → **PE re-audit**. Repeat until 0 issues remain; then sign-off to Deploy.
+- [ ] **Logic audit:** Business logic correctness, edge cases, error handling, data flow
+- [ ] **Architecture audit:** Alignment with ADRs, patterns, scalability, maintainability
+- [ ] **Report:** Findings, recommendations → docs/sdlc/principle-engineer/
 
-## Detailed tasks
+## Issue Tracking
 
-- [ ] **Read implementation**: Code, architecture ADRs, Technical BA spec
-- [ ] **Logic audit**: Business logic correctness, edge cases, error handling, data flow
-- [ ] **Architecture audit**: Alignment with ADRs, patterns, scalability, maintainability
-- [ ] **Report**: Findings, recommendations; output to \`docs/sdlc/principle-engineer/\`
-- [ ] **Fix → retest → re-audit loop**: If logic/arch issues found → Dev fixes → **QE retests** (confirm fix, no regression) → PE re-audit. **Repeat until 0 issues remain**; then sign-off to Deploy.
+Issue ID (PE-001...), Severity, Status, Owner.
+
+## Merge Gate
+
+Critical/High logic issues → 🔴 BLOCK → 🔁 CYCLE 1 → [DEV] fix → [QE] retest → re-audit. Max 3 cycles.
 `;
 
-const DEPLOY_README = `# Deploy
+const DEPLOY_README = `# [OPS] — Infrastructure & Deployment
 
-After the pipeline completes (Security + Principle Engineer sign-off, after fix → retest → re-audit loop until 0 issues), deploy immediately with:
+**When:** After [SEC] + [PERF] + [PE] sign-off (all Critical/High = 0). **Before** Maintenance.
 
-**After Deploy → Maintenance phase**: monitoring, bug fixes, patches, dependency updates.
+**Quality Standard:** All secrets in Vault/SSM. No hardcoded credentials. IaC must pass tfsec/checkov.
 
-- **Docker Compose** — local / staging: \`docker compose up -d\`
-- **Kubernetes** — production: \`kubectl apply -f k8s/\`
+## Deployment
 
-## Files
+\`\`\`bash
+docker compose up -d            # local / staging
+kubectl apply -f k8s/          # production
+\`\`\`
 
-- \`docker-compose.yml.template\` — copy to \`docker-compose.yml\`, adjust image/env
-- \`k8s/deployment.yaml.template\` — Deployment
-- \`k8s/service.yaml.template\` — Service
-- \`k8s/ingress.yaml.template\` — Ingress (optional)
+## Deliverables
+
+- **Docker Compose + Kubernetes:** docker-compose.yml, k8s/deployment.yaml, service.yaml, ingress.yaml
+- **Terraform (optional):** VPC, ECS/EKS, RDS, IAM, SSL, remote state backend
+- **Ansible (optional):** Inventory, roles, playbooks, zero-downtime rolling deploy
+- **CI/CD:** lint → test (100% coverage gate) → build → scan → deploy → smoke-test
+- **IaC security:** tfsec / checkov — block if HIGH severity
+
+## Gate
+
+tfsec/checkov HIGH → 🔴 BLOCK. Secrets in source → 🔴 BLOCK. [SEC]/[PERF] unresolved → 🔴 BLOCK.
+
+See docs/sdlc/SDLC-WORKFLOW.md for full details.
 `;
 
 const DOCKER_COMPOSE_TEMPLATE = `# Copy to docker-compose.yml and adjust image, env, ports.

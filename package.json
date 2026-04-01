@@ -1,6 +1,6 @@
 {
   "name": "sdlc-workflow",
-  "version": "1.2.6",
+  "version": "1.2.8",
   "description": "Scaffold SDLC workflow docs and templates for Cursor, Claude, and dev teams",
   "type": "module",
   "bin": {

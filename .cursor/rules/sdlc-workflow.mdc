@@ -6,22 +6,83 @@ globs: docs/sdlc/**/*, **/*.md
 
 # SDLC Workflow
 
-**On idea/feature request:** Trigger full pipeline (PO → … → Deploy). One role per phase; run phases in sequence. (Single agent = simulate by switching role each phase.) See docs/sdlc/SDLC-WORKFLOW.md and docs/sdlc/agents/.
+**On idea/feature request:** Trigger full pipeline continuously through deployment. Do not stop after one phase unless the user asks.
 
 **Memory requirement:** Before executing any new action, recall relevant memories (project context, user preferences, past decisions) to ensure continuity and avoid repeating mistakes.
 
-1. **PO** — PRD, user stories → docs/sdlc/po/{epic-slug}/ (one folder per epic)
-2. **Business BA** — FRS, process flows → docs/sdlc/ba/business/{epic-slug}/ (one folder per epic)
-3. **Design (if app/web)** — Design specs + wireframes → docs/sdlc/design/{epic-slug}/; **PO + BA review** → loop until approved
-4. **Architect** — ADRs, diagrams → docs/sdlc/architecture/
-5. **Technical BA** — API specs, team breakdown → docs/sdlc/ba/technical/
-6. **QE (docs)** — Test plan, test cases → docs/sdlc/qe/{epic-slug}/ (one folder per epic)
-7. **Dev** — After docs phase → **run implementation immediately**. Tech Lead (highest model: planning, logic, review) + implementation roles (cost-efficient model: code execution) → docs/sdlc/dev/{role}/
-8. **QE (testing + UAT)** — QE Lead + Senior QE + UAT; **bug-fix loop** (bugs → Dev fix → QE retest) until 0 bugs → docs/sdlc/qe/{epic-slug}/
-9. **Security** — Audit security risk → docs/sdlc/security/
-10. **Principle Engineer** — Audit logic, architecture → docs/sdlc/principle-engineer/
-11. **Deploy** — Docker Compose + K8s → docs/sdlc/deploy/ (after Security + PE sign-off; fix → retest → re-audit loop until 0 issues)
-12. **Maintenance** — Monitoring, bug fixes, patches, dependency updates → docs/sdlc/maintenance/
+**Parallel by default, sequential only when required:** If two workstreams do NOT depend on each other's output, they MUST run in parallel.
 
-**Each role runs as a sub-agent.** Design before Architect (UX drives tech). See docs/sdlc/agents/
-Full workflow: docs/sdlc/SDLC-WORKFLOW.md
+---
+
+## Sequential (dependency chain)
+
+```
+Phase 0 → Phase 1 [PO] → Phase 2 [BA] → Phase 3 [UX] → Phase 4 [SA] → Phase 5 Technical [BA]
+```
+
+---
+
+## ⚡ Parallel Track A (Technical BA complete → spawn immediately)
+
+> `[DEV]` AND `[QE]` run simultaneously. Do NOT wait for one to finish before starting the other.
+
+```
+Technical BA complete
+    ├──→ [DEV] implementation (all roles: [FE]/[BE]/[MOBILE]/[EMB]/[DATA]/[PLATFORM])
+    └──→ [QE] test plan + test cases
+         Both complete → Phase 8
+```
+
+---
+
+## ⚡ Parallel Track B ([DEV] complete → spawn immediately)
+
+> `[QE]` + `[SEC]` + `[PERF]` audit the same artifact simultaneously.
+
+```
+[DEV] complete
+    ├──→ [QE] test execution
+    ├──→ [SEC] security audit          ← ALL IN PARALLEL
+    └──→ [PERF] performance audit
+              ↓ Merge gate (sequential)
+         ✅ QUALITY GATE PASSED → [OPS] Deploy
+```
+
+---
+
+## Phase sequence
+
+1. **Phase 1** `[PO]` — PRD, user stories, feasibility → `docs/sdlc/po/{epic-slug}/`
+2. **Phase 2** `[BA]` — FRS, NFR, Gherkin, process flows → `docs/sdlc/ba/business/{epic-slug}/`
+3. **Phase 3** `[UX]` (if app/web) — Design specs + wireframes; `[PO]`+`[BA]` review until approved → `docs/sdlc/design/{epic-slug}/`
+4. **Phase 4** `[SA]` — ADRs, C4 diagrams, security by design → `docs/sdlc/architecture/`
+5. **Phase 5** Technical `[BA]` — API specs (OpenAPI 3.x), team breakdown → `docs/sdlc/ba/technical/`
+6. **⚡ Phase 5a** `[QE]` + **⚡ Phase 5b** `[DEV]` — parallel after Technical BA
+7. **⚡ Phase 8** `[QE]` + `[SEC]` + `[PERF]` — parallel audits after `[DEV]` complete → merge gate
+8. **Phase 9** `[OPS]` — Docker Compose + K8s + IaC → `docs/sdlc/deploy/`
+9. **Phase 10** — `SHIPPED ✅`
+10. **Phase 11** Maintenance — monitoring, bug fixes, patches
+
+---
+
+## Quality standards
+
+| Role | Standard |
+|------|----------|
+| `[PO]` | Every requirement traces to a business KPI |
+| `[BA]` | Every user story has Gherkin AC + edge case |
+| `[UX]` | Every screen: WCAG 2.1 AA + mobile-first |
+| `[SA]` | Every ADR has rationale + trade-off |
+| `[DEV]` | Every function: docstring + error handling + unit test (100%) |
+| `[QE]` | 100% branch coverage; ≥3 negative paths per happy path |
+| `[SEC]` | Zero Critical; High must have mitigation or accepted-risk doc |
+| `[PERF]` | p95 < 500ms for API; no N+1 queries |
+| `[OPS]` | Secrets in Vault/SSM; no hardcoded credentials; IaC passes tfsec |
+
+---
+
+## Remediation loop
+
+Every issue must have an Issue ID (e.g. `SEC-001`). Track: 🔁 CYCLE 1 → 🔁 CYCLE 2 → 🔁 CYCLE 3. Max 3 cycles per issue.
+
+**Each role runs as a sub-agent.** Design before Architect (UX drives tech). See docs/sdlc/SDLC-WORKFLOW.md and docs/sdlc/agents/
